@@ -1,396 +1,105 @@
-# VueTail
+# Keystorm
 
-A production-ready Vue 3 starter template with Tailwind CSS v4, TypeScript, and a complete component library. Built on the [Oxc](https://oxc.rs) toolchain (Oxlint + Oxfmt) and Vite 8 with Rolldown.
+> A web-based typing roguelite where getting better at typing **is** the fun.
 
-## Stack
+Words march toward your base. Type them to destroy them. The dungeon learns your weak keys and sends them back at you — get better, or get overrun.
 
-| Layer      | Technology                                                                  |
-| ---------- | --------------------------------------------------------------------------- |
-| Framework  | Vue 3.5 with `<script setup>` + Composition API                             |
-| Styling    | Tailwind CSS v4 with CSS variable theming                                   |
-| Language   | TypeScript 6 (strict)                                                       |
-| Build      | Vite 8 (Rolldown)                                                           |
-| State      | Pinia 3                                                                     |
-| Routing    | Vue Router 5 with custom Vite plugin + native glob auto-registry           |
-| Validation | Zod 4                                                                       |
-| HTTP       | Axios (interceptors, CSRF, auth token plumbing)                             |
-| Icons      | Iconify (200k+ icons via `@iconify/tailwind4`)                              |
-| Animations | motion-v (spring physics)                                                   |
-| Utilities  | VueUse, date-fns                                                            |
-| Linting    | [Oxlint](https://oxc.rs/docs/guide/usage/linter)                            |
-| Formatting | [Oxfmt](https://oxc.rs/docs/guide/usage/formatter) (Tailwind class sorting) |
-| DevTools   | [Vite DevTools](https://devtools.vite.dev/) (embedded panel)                |
+---
 
-## Prerequisites
+## The idea
 
-- **Node.js** 20.19+ or 22.12+ (required by Vite 8)
-- **pnpm** (recommended)
+Most typing games fail one of two ways:
 
-## Quick Start
+- **Drills** (typing.com, keybr) are honest vegetables — they train you but feel like homework.
+- **Action games** (ZType) are honest candy — fun, but the words are random and never targeted at _your_ weaknesses, so your typing never actually improves.
+
+Keystorm refuses to wrap a vegetable in candy. Instead it **dramatizes the skill curve**: the core feedback loop _is_ the unmistakable feeling of getting better — the same loop that makes practicing a guitar riff addictive. When "improving" is the reward, you don't need candy. The vegetable _is_ the candy.
+
+**North star:** never reward a bad habit. Most action typing games reward raw speed, which trains players to peek at the keyboard and spray inaccurate bursts. Keystorm makes **accuracy and clean cadence** the thing that wins.
+
+## Gameplay loop
+
+A **typing roguelite**. Words spawn on the right and march toward your base on the left. Type the nearest word to shatter it. Let too many through and the run ends. Each run is ~10–15 minutes and ends on a clear verdict: _did I get better?_
+
+Why roguelite over rhythm or narrative:
+
+- Run-based structure is a difficulty curve in disguise, with a built-in improvement verdict.
+- Enemies can secretly carry **your weak letter-pairs** — pedagogy disguised as menace ("the dungeon adapts to you").
+- Lowest content cost: a word pool + procedural spawns = near-infinite play.
+- It steals rhythm-typing's best property — **even cadence** — via the flow combo, without authoring music.
+
+## The learning engine
+
+What makes Keystorm actually _teach_:
+
+1. **Weak-bigram targeting** — track per-**bigram** first-stroke error rate, not just single keys. Speed is bottlenecked by _transitions_ (`tion`, `br`, `ld`), not isolated letters. Bias word selection ~**70% mastered / 30% weak** so it challenges without punishing.
+2. **Flow channel** — spawn rate and enemy speed scale with both elapsed time _and_ the player's current clean WPM, keeping them at the edge of their ability.
+3. **Spaced repetition** _(planned)_ — fumbled words resurface soon, then at widening intervals once nailed. The biggest edge over action-typing games.
+4. **Honest measurement** — **Clean WPM** = gross WPM × accuracy² (sloppy speed is mathematically punished); **first-stroke accuracy**, not "did it come out right after backspacing."
+5. **No bad-habit reinforcement** — the **flow combo** rewards _even_ keystroke cadence; the erratic peek-find-stab pattern breaks it, so you can't game it by looking down.
+
+## Progression & feel
+
+- **See yourself improve:** a live keyboard heatmap that heals red → green as accuracy climbs, plus a post-run card showing most-improved and weakest bigrams.
+- **Juice:** every correct key fires a rising-pitch tone (synthesized via Web Audio — no audio files) that climbs with the flow streak; a hot run literally sounds higher. Plus enemy shatter, screen shake, key-pops.
+- **Meta progression** _(planned):_ unlock relics, enemy types, and biomes (numbers-row, punctuation, code-symbols) gated on **skill milestones**, not grind.
+- **Daily warmup** _(planned):_ a 60–90s session targeting your current weak bigrams — the on-ramp and streak builder.
+
+## MVP scope
+
+**Hypothesis:** targeted, adaptive, juicy typing combat is more fun _and_ more effective than a drill — players improve on their weak bigrams without feeling like they practiced.
+
+**Build first:** one combat screen · keystroke engine (per-key correctness + timing) · weak-bigram tracking + weighted word selection · clean-WPM + first-stroke-accuracy scoring · the juice · post-run card + heatmap.
+
+**Cut for now:** relics/build variety, biomes, narrative, full spaced repetition, accounts, multiplayer, leaderboards.
+
+**Gut-check:** if a playtester says "one more run" _and_ their weak bigrams measurably improve in one session — the hypothesis holds, and everything else is content.
+
+**Audience:** designed for the widest funnel, with adaptive difficulty self-tuning to whoever plays — from improving beginners to intermediate typists (20–60 WPM). True absolute beginners (never learned home row) get a dedicated fundamentals mode later.
+
+---
+
+## Tech
+
+Built on a Vue 3 + Vite foundation. Game state and the weakness vector persist to `localStorage`; no backend required for the MVP.
+
+| Layer     | Technology                                      |
+| --------- | ----------------------------------------------- |
+| Framework | Vue 3.5 with `<script setup>` + Composition API |
+| Styling   | Tailwind CSS v4 with CSS variable theming       |
+| Language  | TypeScript 6 (strict)                           |
+| Build     | Vite 8 (Rolldown)                               |
+| State     | Pinia 3                                         |
+| Rendering | Canvas 2D for the combat scene                  |
+| Audio     | Web Audio API (synthesized combo tones)         |
+| Linting   | [Oxlint](https://oxc.rs) + [Oxfmt](https://oxc.rs) |
+
+## Quick start
 
 ```bash
-git clone https://github.com/your-username/vuetail-template.git
-cd vuetail-template
 pnpm install
 pnpm dev
 ```
 
-Copy `.env.example` to `.env` and set your values:
+Copy `.env.example` to `.env` and set your values if needed:
 
 ```bash
 cp .env.example .env
 ```
 
-## Project Structure
-
-```
-src/
-├── components/
-│   ├── ui/                  # Registry-installed UI components (shadcn-style)
-│   │   ├── AppEmptyState.vue # Empty state placeholders and illustration containers
-│   │   ├── AppIcon.vue       # Scalable Iconify SVG loader
-│   │   ├── AppPageLoader.vue # Absolute layout overlay spinner for route loading
-│   │   ├── AppSkeleton.vue   # Dynamic skeleton shimmer loading placeholders
-│   │   ├── AppToast.vue      # Floating notification toasts with progress timelines
-│   │   └── ThemeToggle.vue   # Sun/moon hover-animated dark mode toggle
-│   ├── AppHeader.vue         # Main layout header with theme toggle and mobile navigation
-│   └── FeatureCard.vue       # Feature showcase cards
-├── composables/
-│   ├── useAppConfig.ts      # Access to centralized Vite layout settings
-│   ├── useAppUi.ts          # Page-level shape overrides and layout configs
-│   ├── useSidebar.ts        # Drawer navigation panel state
-│   ├── useTheme.ts          # Syncs light/dark/system mode class mappings
-│   └── useToast.ts          # Queue manager for toast notifications
-├── config/
-│   ├── app.config.ts        # Centralized app configuration
-│   ├── api-paths.ts         # API endpoint constants
-│   ├── env.ts               # Environment variable accessors
-│   ├── router.ts            # Bespoke compile-time route scan registry
-│   ├── types.ts             # Config type definitions
-│   └── index.ts             # Config initialization
-├── utils/
-│   ├── date.ts              # Date formatting (date-fns wrappers)
-│   ├── datepicker.ts        # DatePicker calendar math
-│   ├── display.ts           # Safe value-to-string with fallback
-│   ├── error.ts             # Axios error message extraction
-│   ├── file.ts              # File size formatting, type detection
-│   ├── fonts.ts             # Font loading and CSS variable registration
-│   ├── seo.ts               # DOM meta tag manipulation
-│   ├── theme.ts             # CSS variable generation, theme application
-│   └── validation.ts        # Pure validation rule functions
-├── services/
-│   ├── BaseApiService.ts    # Generic REST CRUD base class
-│   ├── product.service.ts   # Product API service
-│   └── upload.service.ts    # File upload with progress and cancellation
-├── plugins/
-│   ├── axios.config.ts      # Pure Axios instance and networking config
-│   └── axios.ts             # Axios interceptors, auth state, error handling
-├── stores/                  # Pinia stores
-├── layouts/                 # App layouts (default, auth, dashboard)
-├── pages/                   # File-based typed route page components
-│   ├── index.vue            # Root/Home route (/)
-│   ├── Login.vue            # Login route (/Login, uses auth layout)
-│   ├── ServerError.vue      # Server error route (/ServerError -> custom /500)
-│   ├── Offline.vue          # Offline route (/Offline)
-│   ├── _theme.vue           # Theme Studio (dev-only route)
-│   └── [...pathMatch].vue   # Catch-all 404 route handler
-├── router/                  # Runtime router instantiation & navigation guards
-├── types/                   # Shared TypeScript types
-├── style.css                # Tailwind imports, CSS variables, scrollbar styles
-├── App.vue                  # Root component
-└── main.ts                  # App entry point
-```
-
-## Configuration
-
-All app settings live in `src/config/app.config.ts`:
-
-```ts
-export const appConfig = {
-  app: { name, title, description, version, author, url, language },
-  theme: {
-    defaultTheme: 'system', // 'light' | 'dark' | 'system'
-    light: { primary, secondary, accent, background, surface, ... },
-    dark:  { primary, secondary, accent, background, surface, ... },
-  },
-  typography: { primary, secondary, mono, fonts },
-  icons: { favicon },
-  seo: { title, description, keywords, openGraph, twitter },
-  layout: { containerMaxWidth },
-}
-```
-
-Changes to this file automatically update the theme, fonts, SEO tags, and layout on app initialization.
-
-## Theming
-
-The theme system uses CSS variables defined in `style.css` and overridden at runtime by `app.config.ts`:
-
-```css
-@theme {
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-surface: #f9fafb;
-  /* ... */
-}
-```
-
-Use theme colors directly in Tailwind classes: `bg-primary`, `text-secondary`, `border-border`.
-
-Switch themes programmatically:
-
-```ts
-const { theme, setTheme, isDark } = useTheme();
-setTheme('dark'); // 'light' | 'dark' | 'system'
-```
-
-Customize colors at runtime:
-
-```ts
-const { updateColor, resetColors } = useColorCustomizer();
-updateColor('primary', '#e11d48');
-```
-
-## Routing
-
-The template features a **custom, lightweight compile-time route registry** that automates route mapping directly from `src/pages/` using a tailored Vite macro parser and native glob scanning.
-
-### Custom Page Definitions (`definePage`)
-
-You can configure custom route paths, page titles, and layout overrides directly inside your page components using the `definePage` macro:
-
-```vue
-<script setup lang="ts">
-  definePage({
-    route: "account/logout/",
-    head: "Logout",
-    layout: "default"
-  });
-</script>
-```
-
-- **`route`**: The target URL path (e.g. `account/logout/` resolves to `/account/logout/`). If omitted, the router automatically falls back to file-system-based path names.
-- **`head`**: Page title automatically managed at route changes.
-- **`layout`**: Page layout overrides (`'default'`, `'auth'`, `'dashboard'`).
-
-### File-System Mapping Fallbacks
-
-If a page does not specify an explicit `route`, the router maps it automatically based on its filename:
-
-- `src/pages/index.vue` → `/` (Home page)
-- `src/pages/[...pathMatch].vue` → `/:pathMatch(.*)*` (Catch-all 404 handler page)
-- `src/pages/Offline.vue` → `/offline`
-- `src/pages/Login.vue` → `/login`
-
-## Components
-
-### AppButton
-
-```vue
-<AppButton variant="primary" label="Save" icon="icon-[heroicons-outline--check]" />
-<AppButton variant="danger" label="Delete" :loading="isDeleting" loading-label="Deleting..." />
-<AppButton icon="icon-[heroicons-outline--pencil]" tooltip="Edit" icon-only />
-```
-
-Variants: `primary`, `secondary`, `ghost`, `muted`, `danger`, `success`, `surface`, `outline`
-Sizes: `xs`, `sm`, `md`, `lg`
-
-### AppModal
-
-```vue
-<AppModal
-  :is-open="showModal"
-  title="Edit Profile"
-  description="Update your account details."
-  icon="icon-[heroicons-outline--user]"
-  icon-variant="primary"
-  @close="showModal = false"
-  @confirm="handleSave"
->
-  <p>Modal body content.</p>
-  <template #footer>
-    <AppButton variant="primary" label="Save" @click="handleSave" />
-  </template>
-</AppModal>
-```
-
-Features: Escape/Enter key support, body scroll lock, loading overlay, persistent mode, icon variants (`primary`, `danger`, `warning`, `success`, `info`).
-
-### AppTable
-
-```vue
-<AppTable
-  :columns="columns"
-  :data="products"
-  :searchable="true"
-  :paginated="true"
-  :items-per-page="10"
-  show-column-toggle
->
-  <template #cell-price="{ value }">${{ value }}</template>
-  <template #cell-actions="{ row }">
-    <AppButton icon="icon-[heroicons-outline--pencil]" icon-only tooltip="Edit" />
-  </template>
-</AppTable>
-```
-
-Features: search with clear, sort, client/server pagination, column visibility toggle with localStorage persistence, skeleton loading, truncate with tooltip, sticky actions column.
-
-### AppForm
-
-```vue
-<AppForm v-model="formData" :fields="fields" :schema="zodSchema" @submitted="onSubmit" />
-```
-
-Field types: `text`, `email`, `password`, `number`, `textarea`, `select`, `phone`, `date`, `datetime`. Supports multi-column rows, custom actions slot, and Zod schema validation.
-
-### AppToast
-
-```ts
-const { success, error, warning, info } = useToast();
-success('Changes saved!');
-error('Something went wrong', { title: 'Error', duration: 8000 });
-```
-
-### AppText
-
-```vue
-<AppText variant="h1" :responsiveSize="{ sm: '3xl', md: '5xl' }">Heading</AppText>
-<AppText :gradient="true" gradientFrom="primary" gradientTo="secondary" size="2xl" weight="bold">
-  Gradient Text
-</AppText>
-```
-
-Variants: `h1`-`h6`, `p`, `span`, `label`, `caption`, `overline`.
-
-## Composables
-
-### useAuth
-
-```ts
-const { user, isAuthenticated, login, logout, fetchUser } = useAuth();
-await login({ email: 'user@example.com', password: '...' });
-```
-
-Token is stored in localStorage and automatically attached to every Axios request via the interceptor. 401 responses clear the session.
-
-### useKeyboard
-
-```ts
-useKeyboard({
-  'ctrl+k': () => openSearch(),
-  escape: () => closePanel(),
-});
-
-// Conditional — only active when ref is true
-useKeyboard({ escape: () => close() }, isOpen);
-```
-
-### useLocalStorage
-
-```ts
-const settings = useLocalStorage('app-settings', { sidebar: true }, zodSchema);
-settings.value.sidebar = false; // auto-persisted, validated on read
-```
-
-### useConfirm
-
-```ts
-const { confirm } = useConfirm();
-const ok = await confirm({ title: 'Delete item?', message: 'This cannot be undone.' });
-if (ok) deleteItem();
-```
-
-### usePagination
-
-```ts
-const { page, totalPages, next, prev, visiblePages, paginate } = usePagination({
-  total: computed(() => items.length),
-  pageSize: 20,
-});
-const pageItems = paginate(items);
-```
-
-### useBreakpoint
-
-```ts
-const { isMobile, isDesktop, current, greaterThan } = useBreakpoint();
-// current.value → 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl'
-```
-
-### useClipboard
-
-```ts
-const { copy, copied } = useClipboard();
-await copy('text to copy', true); // true = show toast
-```
-
-### useDebounce / useThrottle
-
-```ts
-const debouncedSearch = useDebounce(searchQuery, 300);
-const throttledScroll = useThrottle(scrollPosition, 100);
-```
-
-## Environment Variables
-
-| Variable       | Description                           | Default                  |
-| -------------- | ------------------------------------- | ------------------------ |
-| `VITE_API_URL` | API base URL (required in production) | `/api`                   |
-| `VITE_APP_URL` | Public app URL (used for SEO)         | `window.location.origin` |
-
-See `.env.example` for reference.
-
-## Code quality
-
-Linting and formatting use the Oxc toolchain — fast, no ESLint/Prettier dependency tree.
-
-| File                               | Purpose                                                     |
-| ---------------------------------- | ----------------------------------------------------------- |
-| [`.oxlintrc.json`](.oxlintrc.json) | Lint rules (TypeScript, Vue, recommended presets)           |
-| [`.oxfmtrc.json`](.oxfmtrc.json)   | Format options + Tailwind class sorting via `src/style.css` |
-
-**Editor:** install the [Oxc VS Code extension](https://marketplace.visualstudio.com/items?itemName=oxc.oxc-vscode) and set it as the default formatter for JS/TS/Vue.
-
-```bash
-pnpm lint          # Lint (warnings for no-console, no-explicit-any, etc.)
-pnpm lint:fix      # Lint with auto-fix
-pnpm format        # Format the repo with Oxfmt
-pnpm format:check  # Fail CI if anything is unformatted
-```
-
-Generated files (`src/auto-imports.d.ts`, `src/components.d.ts`) are ignored by both tools.
-
-## Vite DevTools (embedded)
-
-Per the [official guide](https://devtools.vite.dev/guide/), embedded DevTools needs a production build first so Rolldown metadata exists, then the dev server:
-
-```bash
-pnpm build   # once (or after dependency / config changes)
-pnpm dev
-```
-
-1. Open the app in the browser.
-2. Check the console for `[VITE DEVTOOLS] Client injected` — if missing, restart `pnpm dev` after changing `vite.config.ts`.
-3. Look for a **thin vertical tab on the left edge** of the page (panel starts collapsed). Click it to open the dock.
-4. Rolldown build analysis panels need the `pnpm build` step above.
-
-`vite.config.ts` uses `await DevTools()` because the plugin returns a `Promise<Plugin[]>` — passing `DevTools()` without `await` silently skips all DevTools plugins.
-
 ## Scripts
 
 ```bash
-pnpm dev              # Start dev server
-pnpm build            # Type-check + production build
-pnpm preview          # Preview production build
-pnpm lint             # Run Oxlint
-pnpm lint:fix         # Run Oxlint with auto-fix
-pnpm format           # Format with Oxfmt
-pnpm format:check     # Check formatting (CI)
-pnpm add-component    # Scaffold a UI component
-pnpm add-composable   # Scaffold a composable
-pnpm vuetail:verify   # Verify registry / install integrity
+pnpm dev           # Start dev server
+pnpm build         # Type-check + production build
+pnpm preview       # Preview production build
+pnpm lint          # Run Oxlint
+pnpm lint:fix      # Oxlint with auto-fix
+pnpm format        # Format with Oxfmt
+pnpm format:check  # Check formatting (CI)
 ```
+
+**Prerequisites:** Node.js 20.19+ or 22.12+, pnpm.
 
 ## License
 

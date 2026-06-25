@@ -10,6 +10,7 @@
   import DefaultLayout from '@/layouts/DefaultLayout.vue';
   import AuthLayout from '@/layouts/AuthLayout.vue';
   import DashboardLayout from '@/layouts/DashboardLayout.vue';
+  import AppPageLoader from '@/components/ui/AppPageLoader.vue';
   type LayoutName = 'default' | 'auth' | 'dashboard';
 
   const layouts: Record<LayoutName, unknown> = {

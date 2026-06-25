@@ -4,27 +4,33 @@
 /* Tailwind Theme Definitions */
 /* Fallback values for build-time; runtime colors come from app.config.ts via applyTheme() */
 @theme {
-  --color-primary: #3b82f6;
-  --color-secondary: #8b5cf6;
-  --color-accent: #f59e0b;
-  --color-background: #ffffff;
-  --color-surface: #f9fafb;
-  --color-text: #111827;
-  --color-text-secondary: #6b7280;
-  --color-border: #e5e7eb;
-  --color-muted: #f3f4f6;
-  --color-link: #3b82f6;
-  --color-link-hover: #2563eb;
-  --color-emphasis: #1e40af;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  --color-primary: #0f766e;
+  --color-secondary: #7e22ce;
+  --color-accent: #a16207;
+  --color-background: #faf3e0;
+  --color-surface: #fffaf0;
+  --color-surface-elevated: #ffffff;
+  --color-text: #2b2521;
+  --color-text-secondary: #6f6155;
+  --color-border: #3a322c;
+  --color-muted: #efe4cc;
+  --color-glow: #eab308;
+  --color-link: #0f766e;
+  --color-link-hover: #0b5f57;
+  --color-emphasis: #0b5f57;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-error: #c4332b;
+  --color-info: #0f766e;
 
   /* Font variables */
   --font-primary: var(--font-primary);
   --font-secondary: var(--font-secondary);
   --font-mono: var(--font-mono);
+
+  /* Playful hand-drawn display face for titles/headings — zero-asset, falls
+     back through the most common rounded/marker system fonts. */
+  --font-display: 'Comic Sans MS', 'Comic Neue', 'Chalkboard SE', 'Marker Felt', system-ui, sans-serif;
 }
 
 /* Font Family Registration */
@@ -86,6 +92,303 @@ html[data-shape='pill'] {
   --radius-xl: 9999px;
   --radius-2xl: 9999px;
   --radius-3xl: 9999px;
+}
+
+/* ─── Skin: decoration tokens ──────────────────────────────────────────────
+   Components reference these instead of hardcoding the hand-drawn look, so a
+   skin can restyle depth/headings without touching markup. Defaults below are
+   the retro "sticker" treatment; the VS Code skin flattens them. */
+:root {
+  --shadow-pop: 4px 4px 0 0 var(--color-border);
+  --shadow-pop-sm: 3px 3px 0 0 var(--color-border);
+  --shadow-pop-active: 1px 1px 0 0 var(--color-border);
+  --text-shadow-pop: 4px 4px 0 var(--color-accent);
+}
+
+/* ─── Skin: VS Code editor disguise ────────────────────────────────────────
+   A token-driven, theme-able VS Code skin. The base block below is the default
+   theme (Dark Modern); each `[data-vscode-theme='…']` block swaps in another
+   authentic, popular VS Code color theme. Every component reads these tokens,
+   so a single attribute flip restyles the whole editor — chrome, canvas, and
+   the syntax-highlighted code alike. Selecting the default needs no block. */
+html[data-skin='vscode'] {
+  --font-display: 'Cascadia Code', 'Consolas', 'SF Mono', ui-monospace, monospace;
+  --font-primary: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'Cascadia Code', 'Consolas', 'SF Mono', ui-monospace, monospace;
+
+  /* Theme-independent depth (works on light and dark). */
+  --glass-bg: var(--color-surface);
+  --glass-bg-strong: var(--color-surface-elevated);
+  --glass-border: var(--color-border);
+  --glow-sm: none;
+  --glow-md: 0 2px 8px rgb(0 0 0 / 0.28);
+  --glow-lg: 0 4px 14px rgb(0 0 0 / 0.32);
+  --glow-accent: none;
+  --shadow-pop: 0 2px 8px rgb(0 0 0 / 0.28);
+  --shadow-pop-sm: 0 1px 3px rgb(0 0 0 / 0.24);
+  --shadow-pop-active: 0 1px 2px rgb(0 0 0 / 0.24);
+  --text-shadow-pop: none;
+
+  /* ── Dark Modern (default) ── */
+  --color-primary: #0078d4;
+  --color-secondary: #c586c0;
+  --color-accent: #dcdcaa;
+  --color-background: #1f1f1f;
+  --color-surface: #181818;
+  --color-surface-elevated: #2a2a2a;
+  --color-text: #cccccc;
+  --color-text-secondary: #9d9d9d;
+  --color-border: #2b2b2b;
+  --color-muted: #181818;
+  --color-glow: #569cd6;
+  --color-link: #4daafc;
+  --color-link-hover: #6cb6ff;
+  --color-emphasis: #0078d4;
+  --color-success: #6a9955;
+  --color-warning: #cca700;
+  --color-error: #f14c4c;
+  --color-info: #0078d4;
+  --vscode-titlebar: #181818;
+  --vscode-activitybar: #181818;
+  --vscode-tab-inactive: #181818;
+  --vscode-selection: #04395e;
+  --vscode-hover: #2a2d2e;
+  --vscode-statusbar-bg: #181818;
+  --vscode-statusbar-fg: #cccccc;
+  --syntax-keyword: #569cd6;
+  --syntax-control: #c586c0;
+  --syntax-function: #dcdcaa;
+  --syntax-string: #ce9178;
+  --syntax-comment: #6a9955;
+  --syntax-type: #4ec9b0;
+  --syntax-variable: #9cdcfe;
+  --syntax-number: #b5cea8;
+  --syntax-punctuation: #d4d4d4;
+}
+
+/* ── One Dark Pro ── */
+html[data-skin='vscode'][data-vscode-theme='one-dark-pro'] {
+  --color-primary: #61afef;
+  --color-secondary: #c678dd;
+  --color-accent: #e5c07b;
+  --color-background: #282c34;
+  --color-surface: #21252b;
+  --color-surface-elevated: #2c313a;
+  --color-text: #abb2bf;
+  --color-text-secondary: #636d83;
+  --color-border: #3a3f4b;
+  --color-muted: #21252b;
+  --color-glow: #61afef;
+  --color-link: #61afef;
+  --color-link-hover: #8ac6ff;
+  --color-emphasis: #61afef;
+  --color-success: #98c379;
+  --color-warning: #e5c07b;
+  --color-error: #e06c75;
+  --color-info: #61afef;
+  --vscode-titlebar: #21252b;
+  --vscode-activitybar: #333842;
+  --vscode-tab-inactive: #21252b;
+  --vscode-selection: #2c313c;
+  --vscode-hover: #2c313a;
+  --vscode-statusbar-bg: #21252b;
+  --vscode-statusbar-fg: #9da5b4;
+  --syntax-keyword: #c678dd;
+  --syntax-control: #c678dd;
+  --syntax-function: #61afef;
+  --syntax-string: #98c379;
+  --syntax-comment: #5c6370;
+  --syntax-type: #e5c07b;
+  --syntax-variable: #e06c75;
+  --syntax-number: #d19a66;
+  --syntax-punctuation: #abb2bf;
+}
+
+/* ── Dracula ── */
+html[data-skin='vscode'][data-vscode-theme='dracula'] {
+  --color-primary: #bd93f9;
+  --color-secondary: #ff79c6;
+  --color-accent: #f1fa8c;
+  --color-background: #282a36;
+  --color-surface: #21222c;
+  --color-surface-elevated: #343746;
+  --color-text: #f8f8f2;
+  --color-text-secondary: #6272a4;
+  --color-border: #191a21;
+  --color-muted: #21222c;
+  --color-glow: #bd93f9;
+  --color-link: #8be9fd;
+  --color-link-hover: #a4f0ff;
+  --color-emphasis: #bd93f9;
+  --color-success: #50fa7b;
+  --color-warning: #f1fa8c;
+  --color-error: #ff5555;
+  --color-info: #8be9fd;
+  --vscode-titlebar: #21222c;
+  --vscode-activitybar: #21222c;
+  --vscode-tab-inactive: #191a21;
+  --vscode-selection: #44475a;
+  --vscode-hover: #44475a;
+  --vscode-statusbar-bg: #191a21;
+  --vscode-statusbar-fg: #f8f8f2;
+  --syntax-keyword: #ff79c6;
+  --syntax-control: #ff79c6;
+  --syntax-function: #50fa7b;
+  --syntax-string: #f1fa8c;
+  --syntax-comment: #6272a4;
+  --syntax-type: #8be9fd;
+  --syntax-variable: #f8f8f2;
+  --syntax-number: #bd93f9;
+  --syntax-punctuation: #f8f8f2;
+}
+
+/* ── Light Modern ── */
+html[data-skin='vscode'][data-vscode-theme='light-modern'] {
+  --color-primary: #005fb8;
+  --color-secondary: #af00db;
+  --color-accent: #795e26;
+  --color-background: #ffffff;
+  --color-surface: #f8f8f8;
+  --color-surface-elevated: #f3f3f3;
+  --color-text: #3b3b3b;
+  --color-text-secondary: #767676;
+  --color-border: #e5e5e5;
+  --color-muted: #f8f8f8;
+  --color-glow: #005fb8;
+  --color-link: #005fb8;
+  --color-link-hover: #0a4f8f;
+  --color-emphasis: #005fb8;
+  --color-success: #1a7f37;
+  --color-warning: #bf8803;
+  --color-error: #cd3131;
+  --color-info: #005fb8;
+  --vscode-titlebar: #f8f8f8;
+  --vscode-activitybar: #f8f8f8;
+  --vscode-tab-inactive: #ececec;
+  --vscode-selection: #cce4f7;
+  --vscode-hover: #f0f0f0;
+  --vscode-statusbar-bg: #f8f8f8;
+  --vscode-statusbar-fg: #3b3b3b;
+  --syntax-keyword: #0000ff;
+  --syntax-control: #af00db;
+  --syntax-function: #795e26;
+  --syntax-string: #a31515;
+  --syntax-comment: #008000;
+  --syntax-type: #267f99;
+  --syntax-variable: #001080;
+  --syntax-number: #098658;
+  --syntax-punctuation: #000000;
+}
+
+/* ── GitHub Light ── */
+html[data-skin='vscode'][data-vscode-theme='github-light'] {
+  --color-primary: #0969da;
+  --color-secondary: #8250df;
+  --color-accent: #953800;
+  --color-background: #ffffff;
+  --color-surface: #f6f8fa;
+  --color-surface-elevated: #ffffff;
+  --color-text: #1f2328;
+  --color-text-secondary: #656d76;
+  --color-border: #d0d7de;
+  --color-muted: #f6f8fa;
+  --color-glow: #0969da;
+  --color-link: #0969da;
+  --color-link-hover: #0a4f8f;
+  --color-emphasis: #0969da;
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-error: #cf222e;
+  --color-info: #0969da;
+  --vscode-titlebar: #f6f8fa;
+  --vscode-activitybar: #f6f8fa;
+  --vscode-tab-inactive: #eaeef2;
+  --vscode-selection: #b6e3ff;
+  --vscode-hover: #eaeef2;
+  --vscode-statusbar-bg: #f6f8fa;
+  --vscode-statusbar-fg: #1f2328;
+  --syntax-keyword: #cf222e;
+  --syntax-control: #cf222e;
+  --syntax-function: #8250df;
+  --syntax-string: #0a3069;
+  --syntax-comment: #6e7781;
+  --syntax-type: #953800;
+  --syntax-variable: #1f2328;
+  --syntax-number: #0550ae;
+  --syntax-punctuation: #24292f;
+}
+
+/* Plain editor backdrop, no ambience texture. */
+html[data-skin='vscode'] body {
+  background-color: var(--color-background);
+  background-image: none;
+}
+
+/* ─── Shared HUD keyframes + utilities ─────────────────────────────────────
+   Cheap, GPU-friendly motion shared by HUD components. Disabled under
+   prefers-reduced-motion. */
+@keyframes ks-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes ks-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+@keyframes ks-border-scan {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+@keyframes ks-dial-sweep {
+  from {
+    stroke-dashoffset: var(--dial-circumference);
+  }
+}
+@keyframes ks-scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+.ks-glow-pulse {
+  animation: ks-glow-pulse 2.4s ease-in-out infinite;
+}
+.ks-float {
+  animation: ks-float 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ks-glow-pulse,
+  .ks-float {
+    animation: none !important;
+  }
+}
+
+/* Status bar tracks the active theme's status-bar colors. */
+.vscode-statusbar {
+  background-color: var(--vscode-statusbar-bg);
+  color: var(--vscode-statusbar-fg);
+}
+
+.vscode-statusbar-item:hover {
+  background-color: color-mix(in srgb, var(--vscode-statusbar-fg) 14%, transparent);
 }
 
 /* Smooth theme transitions — only applied during an active theme swap.

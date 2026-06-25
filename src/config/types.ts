@@ -4,10 +4,12 @@ export interface ColorPalette {
   accent: string;
   background: string;
   surface: string;
+  surfaceElevated?: string;
   text: string;
   textSecondary: string;
   border: string;
   muted?: string;
+  glow?: string;
   link?: string;
   linkHover?: string;
   emphasis?: string;
