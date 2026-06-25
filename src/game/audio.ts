@@ -13,7 +13,7 @@ const MASTER_GAIN = 0.18;
 const HIT_BASE_FREQUENCY = 330;
 const HIT_MAX_FREQUENCY = 1200;
 const SEMITONE_RATIO = Math.pow(2, 1 / 12);
-const MISS_FREQUENCY = 110;
+const MISS_FREQUENCY = 165;
 
 export class ComboAudio {
   private context: AudioContext | null = null;
@@ -92,23 +92,29 @@ export class ComboAudio {
     oscillator.stop(time + duration);
   }
 
+  /** A wrong key — a sharp, dissonant double-buzz that's impossible to miss,
+   *  yet still reads as a stern "nope" rather than an arcade explosion. Two
+   *  detuned sawtooth tones beat against each other for an unmistakable error. */
   miss(): void {
     const now = this.beginSound();
     if (!now) return;
     const { context, master, time } = now;
-    const oscillator = context.createOscillator();
+    const duration = 0.16;
     const envelope = context.createGain();
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(MISS_FREQUENCY, time);
-
-    const duration = 0.18;
     envelope.gain.setValueAtTime(0.0001, time);
-    envelope.gain.exponentialRampToValueAtTime(0.8, time + 0.01);
+    envelope.gain.exponentialRampToValueAtTime(1, time + 0.004);
     envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+    envelope.connect(master);
 
-    oscillator.connect(envelope).connect(master);
-    oscillator.start(time);
-    oscillator.stop(time + duration);
+    for (const offset of [MISS_FREQUENCY, MISS_FREQUENCY * 1.06]) {
+      const oscillator = context.createOscillator();
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(offset, time);
+      oscillator.frequency.exponentialRampToValueAtTime(offset * 0.6, time + duration);
+      oscillator.connect(envelope);
+      oscillator.start(time);
+      oscillator.stop(time + duration);
+    }
   }
 
   /** A heart is lost — a heavier descending buzz than a typo. */

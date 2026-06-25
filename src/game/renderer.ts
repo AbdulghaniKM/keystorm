@@ -8,6 +8,7 @@
 
 import type { GameEngine } from '@/game/engine';
 import type { Enemy, Locale } from '@/game/types';
+import { fontPxFor, gutterWidthFor, rowHeightFor } from '@/game/layout';
 
 export interface RenderColors {
   base: string;
@@ -65,29 +66,18 @@ export function readRenderColors(el: HTMLElement): RenderColors {
   };
 }
 
-const BASE_ZONE_FRACTION = 0.08;
 // Canvas 2D font strings do NOT support CSS var() — they silently fall back to
 // 10px sans-serif. Mirror the editor's --font-mono so the words read like code,
 // with IBM Plex Sans (Arabic) tailing the chain: the coding monospaces have no
 // Arabic glyphs, so the browser falls back to it per-glyph for ع/ar runs.
 const FONT_FAMILY =
   '"Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", "SF Mono", ui-monospace, "IBM Plex Sans", monospace';
-const FONT_MIN_PX = 18;
-const FONT_MAX_PX = 28;
-// Word size is tied to field WIDTH (not height) so it stays proportional to the
-// rem-based UI at any browser zoom, and never balloons on tall play areas.
-const FONT_WIDTH_DIVISOR = 38;
-const PROXIMITY_RANGE_FRACTION = 0.35;
+const PROXIMITY_RANGE_FRACTION = 0.4;
 // A small, restrained screen shake on impact — enough to register, never a jolt
 // that would betray a game running behind the editor disguise.
 const SHAKE_PIXELS_PER_MS = 0.02;
 const SHAKE_MAX_PX = 6;
 
-// ─── Editor field ────────────────────────────────────────────────────────────
-// The play-field IS the editor body — full-bleed, no box. A line-number gutter
-// runs the full height and the words flow across the entire code surface, so the
-// player gets the whole editor instead of a cramped square.
-const ROW_HEIGHT_FACTOR = 1.6;
 const GUTTER_FONT_SCALE = 0.82;
 const ACTIVE_LINE_ALPHA = 0.4;
 // Horizontal padding for the selection rectangle drawn behind the active word.
@@ -96,6 +86,19 @@ const SELECTION_PADDING_Y = 3;
 const SELECTION_ALPHA = 0.55;
 // Blinking caret drawn at the active word's typed offset, like the editor caret.
 const CARET_BLINK_MS = 1000;
+
+// ─── Danger zones ────────────────────────────────────────────────────────────
+// Discrete proximity bands (0 = just spawned, 1 = at the gutter). The critical
+// band earns the red diagnostics squiggle and a red line number; everything
+// dims with distance so the nearest threat reads as the brightest.
+const CRITICAL_NEARNESS = 0.78;
+const SQUIGGLE_AMPLITUDE = 2.5;
+const SQUIGGLE_STEP = 4;
+const MIN_WORD_ALPHA = 0.55;
+
+function clamp01(value: number): number {
+  return Math.max(0, Math.min(1, value));
+}
 
 export class GameRenderer {
   private cssWidth = 0;
@@ -114,27 +117,41 @@ export class GameRenderer {
 
   draw(engine: GameEngine, locale: Locale, colors: RenderColors, shakeMs: number): void {
     const { ctx } = this;
-    ctx.clearRect(0, 0, this.cssWidth, this.cssHeight);
+    const width = this.cssWidth;
+    const enemies = engine.enemies;
+    const px = fontPxFor(width);
+    const rowHeight = rowHeightFor(width);
+    const gutter = gutterWidthFor(width);
+
+    const proximity = this.nearestThreatProximity(enemies, gutter, width);
+    const frontMost = this.frontMostEnemy(enemies);
+    const highlights = this.gutterHighlights(enemies, frontMost, rowHeight, gutter, width, colors);
+
+    ctx.clearRect(0, 0, width, this.cssHeight);
     // The editor body renders outside the shake transform so the structure stays
-    // steady while impacts nudge only the words and the cursor column.
-    this.drawEditorField(colors);
+    // steady while impacts nudge only the words.
+    this.drawEditorField(colors, px, rowHeight, gutter, highlights, proximity);
     ctx.save();
     this.applyShake(shakeMs);
-    this.drawCursorColumn(engine.enemies, colors);
-    this.drawEnemies(engine.enemies, locale, colors);
+    this.drawEnemies(enemies, locale, colors, px, gutter, width);
     ctx.restore();
   }
 
   // Full-bleed editor body: a flat fill, a current-line highlight, and a real
-  // line-number gutter numbered top to bottom. The words march across the whole
-  // surface — there is no boxed arena.
-  private drawEditorField(colors: RenderColors): void {
+  // line-number gutter. Line numbers double as the game HUD: red on a word in
+  // the critical zone, accent on the front-most "next up" word (with a current-
+  // line ▶ marker), and a green flash on the row of a word being cleared.
+  private drawEditorField(
+    colors: RenderColors,
+    px: number,
+    rowHeight: number,
+    gutterWidth: number,
+    highlights: Map<number, string>,
+    proximity: number,
+  ): void {
     const { ctx } = this;
     const width = this.cssWidth;
     const height = this.cssHeight;
-    const px = this.fontPx();
-    const rowHeight = Math.round(px * ROW_HEIGHT_FACTOR);
-    const gutterWidth = this.gutterWidth();
 
     ctx.fillStyle = colors.background;
     ctx.fillRect(0, 0, width, height);
@@ -148,21 +165,24 @@ export class GameRenderer {
     ctx.fillRect(gutterWidth, activeRow * rowHeight, width - gutterWidth, rowHeight);
     ctx.globalAlpha = 1;
 
-    // Gutter divider hairline.
-    ctx.strokeStyle = colors.outline;
-    ctx.lineWidth = 1;
+    // Gutter divider doubles as the base line — it reddens and thickens as the
+    // nearest word closes in, so the danger lives on the editor's own chrome.
+    ctx.strokeStyle = proximity > 0.55 ? colors.danger : colors.outline;
+    ctx.lineWidth = 1 + proximity * 1.5;
     ctx.beginPath();
     ctx.moveTo(gutterWidth, 0);
     ctx.lineTo(gutterWidth, height);
     ctx.stroke();
 
-    // Line numbers down the full height.
-    ctx.fillStyle = colors.enemy;
+    // Line numbers down the full height, recolored per row by the game state.
     ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${FONT_FAMILY}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'right';
     let lineNumber = 1;
     for (let y = rowHeight / 2; y < height; y += rowHeight) {
+      const color = highlights.get(lineNumber - 1) ?? colors.enemy;
+      if (color === colors.accent) this.drawNextUpMarker(y, px, colors.accent);
+      ctx.fillStyle = color;
       ctx.fillText(String(lineNumber), gutterWidth - 8, y);
       lineNumber++;
     }
@@ -170,14 +190,18 @@ export class GameRenderer {
     ctx.restore();
   }
 
-  // Gutter width tracks the font but never crowds the words' stop line.
-  private gutterWidth(): number {
-    return Math.min(this.fontPx() * 3, this.baseWidth() * 0.85);
-  }
-
-  private fontPx(): number {
-    const scaled = Math.round(this.cssWidth / FONT_WIDTH_DIVISOR);
-    return Math.max(FONT_MIN_PX, Math.min(FONT_MAX_PX, scaled));
+  // A small ▶ in the gutter on the front-most word's row — the editor's current-
+  // line indicator, repurposed as the "clear this one next" cue.
+  private drawNextUpMarker(centerY: number, px: number, color: string): void {
+    const { ctx } = this;
+    const size = px * 0.3;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(3, centerY - size);
+    ctx.lineTo(3 + size, centerY);
+    ctx.lineTo(3, centerY + size);
+    ctx.closePath();
+    ctx.fill();
   }
 
   private applyShake(shakeMs: number): void {
@@ -188,71 +212,82 @@ export class GameRenderer {
     this.ctx.translate(offsetX, offsetY);
   }
 
-  private baseWidth(): number {
-    return this.cssWidth * BASE_ZONE_FRACTION;
+  // How close (0..1) a word's left edge sits to the gutter/base line.
+  private nearness(enemy: Enemy, gutter: number, width: number): number {
+    const range = width * PROXIMITY_RANGE_FRACTION;
+    return 1 - clamp01((enemy.x - gutter) / range);
   }
 
-  // The base zone reads as an editor cursor column: a faint selection-tint band
-  // that deepens as words close in, capped by a thin cursor-color line. No glow,
-  // no danger red — just the kind of caret + selection you'd see while editing.
-  private drawCursorColumn(enemies: Enemy[], colors: RenderColors): void {
-    const { ctx } = this;
-    const columnX = this.baseWidth();
-    const proximity = this.nearestThreatProximity(enemies);
-
-    ctx.save();
-
-    const band = ctx.createLinearGradient(0, 0, columnX, 0);
-    const bandAlpha = 0.08 + proximity * 0.18;
-    band.addColorStop(0, this.withAlpha(colors.glow, bandAlpha));
-    band.addColorStop(1, this.withAlpha(colors.glow, 0));
-    ctx.fillStyle = band;
-    ctx.fillRect(0, 0, columnX, this.cssHeight);
-
-    ctx.strokeStyle = colors.base;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(columnX, 0);
-    ctx.lineTo(columnX, this.cssHeight);
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // Appends a hex alpha byte to a #rrggbb token; falls back to globalAlpha-safe
-  // solid color for non-hex tokens so gradients always receive a valid stop.
-  private withAlpha(color: string, alpha: number): string {
-    if (color.length !== 7 || color.charAt(0) !== '#') return color;
-    const byte = Math.round(Math.max(0, Math.min(1, alpha)) * 255);
-    return color + byte.toString(16).padStart(2, '0');
-  }
-
-  private nearestThreatProximity(enemies: Enemy[]): number {
-    const baseX = this.baseWidth();
-    const range = this.cssWidth * PROXIMITY_RANGE_FRACTION;
+  private nearestThreatProximity(enemies: Enemy[], gutter: number, width: number): number {
     let closest = 0;
     for (const enemy of enemies) {
       if (enemy.shatter !== undefined) continue;
-      const distance = enemy.x - baseX;
-      if (distance < 0) continue;
-      const nearness = 1 - Math.min(distance / range, 1);
+      const nearness = this.nearness(enemy, gutter, width);
       if (nearness > closest) closest = nearness;
     }
     return closest;
   }
 
-  private drawEnemies(enemies: Enemy[], locale: Locale, colors: RenderColors): void {
+  private frontMostEnemy(enemies: Enemy[]): Enemy | undefined {
+    let front: Enemy | undefined;
+    for (const enemy of enemies) {
+      if (enemy.shatter !== undefined) continue;
+      if (!front || enemy.x < front.x) front = enemy;
+    }
+    return front;
+  }
+
+  // Map each interesting word to a line-number color: a clearing word flashes
+  // green, a critical word burns red, and the front-most word gets the accent
+  // "next up" cue. Keyed by row index (line number − 1).
+  private gutterHighlights(
+    enemies: Enemy[],
+    frontMost: Enemy | undefined,
+    rowHeight: number,
+    gutter: number,
+    width: number,
+    colors: RenderColors,
+  ): Map<number, string> {
+    const map = new Map<number, string>();
+    for (const enemy of enemies) {
+      const row = Math.round(enemy.y / rowHeight - 0.5);
+      if (row < 0) continue;
+      if (enemy.shatter !== undefined) {
+        map.set(row, colors.typed);
+      } else if (this.nearness(enemy, gutter, width) >= CRITICAL_NEARNESS) {
+        map.set(row, colors.danger);
+      }
+    }
+    if (frontMost) {
+      const row = Math.round(frontMost.y / rowHeight - 0.5);
+      if (row >= 0 && !map.has(row)) map.set(row, colors.accent);
+    }
+    return map;
+  }
+
+  private drawEnemies(
+    enemies: Enemy[],
+    locale: Locale,
+    colors: RenderColors,
+    px: number,
+    gutter: number,
+    width: number,
+  ): void {
     const { ctx } = this;
-    const px = this.fontPx();
     ctx.font = `400 ${px}px ${FONT_FAMILY}`;
     ctx.textBaseline = 'middle';
     for (const enemy of enemies) {
       if (enemy.shatter !== undefined) {
-        this.drawShatter(enemy, locale, colors);
-      } else if (locale === 'ar') {
-        this.drawArabicEnemy(enemy, colors, px);
+        this.drawShatter(enemy, locale, colors, px);
+        continue;
+      }
+      const near = this.nearness(enemy, gutter, width);
+      const critical = near >= CRITICAL_NEARNESS;
+      const alpha = enemy.active ? 1 : MIN_WORD_ALPHA + (1 - MIN_WORD_ALPHA) * near;
+      if (locale === 'ar') {
+        this.drawArabicEnemy(enemy, colors, px, alpha, critical);
       } else {
-        this.drawLatinEnemy(enemy, colors, px);
+        this.drawLatinEnemy(enemy, colors, px, alpha, critical);
       }
     }
   }
@@ -269,26 +304,141 @@ export class GameRenderer {
     ctx.restore();
   }
 
-  private drawLatinEnemy(enemy: Enemy, colors: RenderColors, px: number): void {
+  private drawLatinEnemy(
+    enemy: Enemy,
+    colors: RenderColors,
+    px: number,
+    alpha: number,
+    critical: boolean,
+  ): void {
     const { ctx } = this;
     const typedText = enemy.word.slice(0, enemy.typed);
     const remainingText = enemy.word.slice(enemy.typed);
     const wordWidth = ctx.measureText(enemy.word).width;
+    const typedWidth = ctx.measureText(typedText).width;
     const erroring = (enemy.errorMs ?? 0) > 0;
 
-    if (enemy.active) {
-      this.drawSelection(enemy.x, wordWidth, enemy.y, px, colors);
-    }
+    if (enemy.active) this.drawSelection(enemy.x, wordWidth, enemy.y, px, colors);
 
     ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.direction = 'ltr';
     ctx.textAlign = 'left';
     ctx.fillStyle = colors.typed;
     ctx.fillText(typedText, enemy.x, enemy.y);
-    const typedWidth = ctx.measureText(typedText).width;
     ctx.fillStyle = this.remainingColor(enemy.active, erroring, colors);
     ctx.fillText(remainingText, enemy.x + typedWidth, enemy.y);
+    ctx.restore();
+
+    this.drawProgressUnderline(enemy.x, wordWidth, enemy, colors, enemy.y + px * 0.5, alpha);
+    this.drawWordStatus(enemy.x, wordWidth, enemy.y, px, erroring, critical, colors);
+
     if (enemy.active) this.drawCaret(enemy.x + typedWidth, enemy.y, px, colors.text);
+  }
+
+  private drawArabicEnemy(
+    enemy: Enemy,
+    colors: RenderColors,
+    px: number,
+    alpha: number,
+    critical: boolean,
+  ): void {
+    const { ctx } = this;
+    const wordWidth = ctx.measureText(enemy.word).width;
+    const erroring = (enemy.errorMs ?? 0) > 0;
+    const left = enemy.x - wordWidth;
+
+    if (enemy.active) this.drawSelection(left, wordWidth, enemy.y, px, colors);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = this.remainingColor(enemy.active, erroring, colors);
+    ctx.fillText(enemy.word, enemy.x, enemy.y);
+    ctx.restore();
+
+    // Arabic underline is right-anchored from enemy.x leftward.
+    this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + px * 0.6, alpha);
+    this.drawWordStatus(left, wordWidth, enemy.y, px, erroring, critical, colors);
+  }
+
+  // Non-color-only feedback below every word: a red strike-through while a typo
+  // is live (errorMs), or a red diagnostics squiggle once it enters the critical
+  // zone — the squiggle reads exactly like an editor error, and the shape (not
+  // just the color) carries the warning for color-blind players.
+  private drawWordStatus(
+    left: number,
+    width: number,
+    centerY: number,
+    px: number,
+    erroring: boolean,
+    critical: boolean,
+    colors: RenderColors,
+  ): void {
+    if (erroring) {
+      this.drawStrike(left, width, centerY, colors.danger);
+    } else if (critical) {
+      this.drawSquiggle(left, width, centerY + px * 0.82, colors.danger);
+    }
+  }
+
+  // Progress bar under the word: the whole span faint, the typed fraction solid
+  // green — mirrors the editor's inline diff/coverage gutter.
+  private drawProgressUnderline(
+    left: number,
+    wordWidth: number,
+    enemy: Enemy,
+    colors: RenderColors,
+    underlineY: number,
+    alpha: number,
+  ): void {
+    const { ctx } = this;
+    const fraction = enemy.word.length > 0 ? enemy.typed / enemy.word.length : 0;
+
+    ctx.save();
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.25 * alpha;
+    ctx.strokeStyle = colors.enemy;
+    ctx.beginPath();
+    ctx.moveTo(left, underlineY);
+    ctx.lineTo(left + wordWidth, underlineY);
+    ctx.stroke();
+
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = colors.typed;
+    ctx.beginPath();
+    ctx.moveTo(left, underlineY);
+    ctx.lineTo(left + wordWidth * fraction, underlineY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawStrike(left: number, width: number, centerY: number, color: string): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(left, centerY);
+    ctx.lineTo(left + width, centerY);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawSquiggle(left: number, width: number, y: number, color: string): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(left, y);
+    let up = true;
+    for (let x = left; x <= left + width; x += SQUIGGLE_STEP) {
+      ctx.lineTo(x, y + (up ? -SQUIGGLE_AMPLITUDE : SQUIGGLE_AMPLITUDE));
+      up = !up;
+    }
+    ctx.stroke();
     ctx.restore();
   }
 
@@ -310,56 +460,9 @@ export class GameRenderer {
     return colors.text;
   }
 
-  private drawArabicEnemy(enemy: Enemy, colors: RenderColors, px: number): void {
-    const { ctx } = this;
-    const wordWidth = ctx.measureText(enemy.word).width;
-    const erroring = (enemy.errorMs ?? 0) > 0;
-    const left = enemy.x - wordWidth;
-
-    if (enemy.active) {
-      this.drawSelection(left, wordWidth, enemy.y, px, colors);
-    }
-
-    ctx.save();
-    ctx.direction = 'rtl';
-    ctx.textAlign = 'right';
-    ctx.fillStyle = this.remainingColor(enemy.active, erroring, colors);
-    ctx.fillText(enemy.word, enemy.x, enemy.y);
-    this.drawProgressUnderline(enemy, wordWidth, colors, px);
-    ctx.restore();
-  }
-
-  private drawProgressUnderline(
-    enemy: Enemy,
-    wordWidth: number,
-    colors: RenderColors,
-    px: number,
-  ): void {
-    const { ctx } = this;
-    const fraction = enemy.word.length > 0 ? enemy.typed / enemy.word.length : 0;
-    const underlineY = enemy.y + px * 0.6;
-    const right = enemy.x;
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = colors.enemy;
-    ctx.globalAlpha = 0.3;
-    ctx.beginPath();
-    ctx.moveTo(right - wordWidth, underlineY);
-    ctx.lineTo(right, underlineY);
-    ctx.stroke();
-
-    ctx.globalAlpha = 1;
-    ctx.strokeStyle = colors.typed;
-    ctx.beginPath();
-    ctx.moveTo(right, underlineY);
-    ctx.lineTo(right - wordWidth * fraction, underlineY);
-    ctx.stroke();
-  }
-
   // A cleared word doesn't explode — it fades and shrinks like text being
-  // deleted from the buffer. No additive blending, no glow, no motes. Reuses the
-  // font set by drawEnemies so it matches the live tokens.
-  private drawShatter(enemy: Enemy, locale: Locale, colors: RenderColors): void {
+  // deleted from the buffer. No additive blending, no glow, no motes.
+  private drawShatter(enemy: Enemy, locale: Locale, colors: RenderColors, px: number): void {
     const { ctx } = this;
     const progress = enemy.shatter ?? 0;
     const fade = 1 - progress;
@@ -367,6 +470,8 @@ export class GameRenderer {
 
     ctx.save();
     ctx.globalAlpha = fade;
+    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+    ctx.textBaseline = 'middle';
     ctx.translate(enemy.x, enemy.y);
     ctx.scale(scale, scale);
     ctx.fillStyle = colors.typed;

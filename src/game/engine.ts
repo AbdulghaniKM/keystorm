@@ -12,6 +12,7 @@ import { computeDeltas, extractBigrams, recordSample, weakBigrams } from '@/game
 import { selectWord } from '@/game/words';
 import { cleanWpm, firstStrokeAccuracy, grossWpm } from '@/game/scoring';
 import { rollModifiers, type RunModifier } from '@/game/modifiers';
+import { fontPxFor, gutterWidthFor, laneCenters } from '@/game/layout';
 
 const DEFAULT_LIVES = 3;
 
@@ -27,9 +28,6 @@ const SPEED_START_PX_PER_SEC = 22;
 const SPEED_MAX_PX_PER_SEC = 70;
 const SPEED_RAMP_DURATION_MS = 120000;
 
-const BASE_LINE_FRACTION = 0.08;
-const SPAWN_MARGIN_FRACTION = 0.12;
-const LANE_COUNT = 6;
 const LANE_OVERLAP_GUARD_PX = 60;
 
 const SHATTER_DURATION_MS = 220;
@@ -216,7 +214,10 @@ export class GameEngine {
   handleChar(char: string): void {
     if (this.phase !== 'playing' || char.length === 0) return;
     const target = this.findActiveEnemy() ?? this.commitFrontMost(char);
-    if (!target) return;
+    if (!target) {
+      this.registerStrayKey();
+      return;
+    }
     this.applyStroke(target, char);
   }
 
@@ -303,11 +304,11 @@ export class GameEngine {
     this.emit({ type: 'spawn', enemyId: enemy.id });
   }
 
-  // Rough on-screen word width in px (the engine has no canvas). Mirrors the
-  // renderer's width-based font sizing with a monospace advance estimate.
+  // Rough on-screen word width in px (the engine has no canvas). Uses the shared
+  // field geometry's font sizing with a monospace advance estimate so spacing
+  // math stays in lock-step with what the renderer paints.
   private approxWordWidthPx(word: string): number {
-    const fontPx = Math.max(18, Math.min(28, Math.round(this.width / 38)));
-    return word.length * fontPx * 0.62;
+    return word.length * fontPxFor(this.width) * 0.62;
   }
 
   // Center x of a live enemy's word, accounting for the LTR/RTL text anchor.
@@ -317,11 +318,7 @@ export class GameEngine {
   }
 
   private pickLaneY(halfWidth: number): number {
-    const laneHeight = this.height / LANE_COUNT;
-    const lanes = Array.from(
-      { length: LANE_COUNT },
-      (_, lane) => laneHeight * lane + laneHeight / 2,
-    );
+    const lanes = laneCenters(this.width, this.height);
     const open = lanes.filter((laneY) => this.laneHasRoom(laneY, halfWidth));
     const pool = open.length > 0 ? open : lanes;
     return pool[Math.floor(Math.random() * pool.length)];
@@ -362,7 +359,7 @@ export class GameEngine {
 
   private marchEnemies(dtMs: number): void {
     const distance = dtMs / 1000;
-    const baseLine = this.width * BASE_LINE_FRACTION;
+    const baseLine = gutterWidthFor(this.width);
     const survivors: Enemy[] = [];
     for (const enemy of this.enemies) {
       if (enemy.shatter !== undefined) {
@@ -440,6 +437,14 @@ export class GameEngine {
     this.recordBigram(enemy, expected, false);
     this.combo = 0;
     enemy.errorMs = ERROR_FLASH_MS;
+    this.emit({ type: 'miss' });
+  }
+
+  // A keystroke that matches no live word — a genuine wrong letter. It breaks the
+  // combo and sounds the error buzz, but is left out of the accuracy stats and
+  // the learning vector (there is no target bigram to attribute it to).
+  private registerStrayKey(): void {
+    this.combo = 0;
     this.emit({ type: 'miss' });
   }
 

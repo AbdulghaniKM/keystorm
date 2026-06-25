@@ -318,6 +318,576 @@ html[data-skin='vscode'][data-vscode-theme='github-light'] {
   --syntax-punctuation: #24292f;
 }
 
+/* ── Monokai ── */
+html[data-skin='vscode'][data-vscode-theme='monokai'] {
+  --color-primary: #f92672;
+  --color-secondary: #ae81ff;
+  --color-accent: #e6db74;
+  --color-background: #272822;
+  --color-surface: #1e1f1c;
+  --color-surface-elevated: #383830;
+  --color-text: #f8f8f2;
+  --color-text-secondary: #75715e;
+  --color-border: #3e3d32;
+  --color-muted: #1e1f1c;
+  --color-glow: #f92672;
+  --color-link: #66d9ef;
+  --color-link-hover: #a1efff;
+  --color-emphasis: #f92672;
+  --color-success: #a6e22e;
+  --color-warning: #e6db74;
+  --color-error: #f92672;
+  --color-info: #66d9ef;
+  --vscode-titlebar: #1e1f1c;
+  --vscode-activitybar: #272822;
+  --vscode-tab-inactive: #1e1f1c;
+  --vscode-selection: #49483e;
+  --vscode-hover: #3e3d32;
+  --vscode-statusbar-bg: #414339;
+  --vscode-statusbar-fg: #f8f8f2;
+  --syntax-keyword: #f92672;
+  --syntax-control: #f92672;
+  --syntax-function: #a6e22e;
+  --syntax-string: #e6db74;
+  --syntax-comment: #75715e;
+  --syntax-type: #66d9ef;
+  --syntax-variable: #f8f8f2;
+  --syntax-number: #ae81ff;
+  --syntax-punctuation: #f8f8f2;
+}
+
+/* ── Tokyo Night ── */
+html[data-skin='vscode'][data-vscode-theme='tokyo-night'] {
+  --color-primary: #7aa2f7;
+  --color-secondary: #bb9af7;
+  --color-accent: #e0af68;
+  --color-background: #1a1b26;
+  --color-surface: #16161e;
+  --color-surface-elevated: #1f2335;
+  --color-text: #c0caf5;
+  --color-text-secondary: #565f89;
+  --color-border: #1f2335;
+  --color-muted: #16161e;
+  --color-glow: #7aa2f7;
+  --color-link: #7aa2f7;
+  --color-link-hover: #9ec0ff;
+  --color-emphasis: #7aa2f7;
+  --color-success: #9ece6a;
+  --color-warning: #e0af68;
+  --color-error: #f7768e;
+  --color-info: #7dcfff;
+  --vscode-titlebar: #16161e;
+  --vscode-activitybar: #16161e;
+  --vscode-tab-inactive: #16161e;
+  --vscode-selection: #283457;
+  --vscode-hover: #1f2335;
+  --vscode-statusbar-bg: #16161e;
+  --vscode-statusbar-fg: #787c99;
+  --syntax-keyword: #bb9af7;
+  --syntax-control: #bb9af7;
+  --syntax-function: #7aa2f7;
+  --syntax-string: #9ece6a;
+  --syntax-comment: #565f89;
+  --syntax-type: #2ac3de;
+  --syntax-variable: #c0caf5;
+  --syntax-number: #ff9e64;
+  --syntax-punctuation: #89ddff;
+}
+
+/* ── Night Owl ── */
+html[data-skin='vscode'][data-vscode-theme='night-owl'] {
+  --color-primary: #82aaff;
+  --color-secondary: #c792ea;
+  --color-accent: #ecc48d;
+  --color-background: #011627;
+  --color-surface: #010e1a;
+  --color-surface-elevated: #0b2942;
+  --color-text: #d6deeb;
+  --color-text-secondary: #5f7e97;
+  --color-border: #0b2942;
+  --color-muted: #010e1a;
+  --color-glow: #82aaff;
+  --color-link: #82aaff;
+  --color-link-hover: #a6c3ff;
+  --color-emphasis: #82aaff;
+  --color-success: #addb67;
+  --color-warning: #ecc48d;
+  --color-error: #ef5350;
+  --color-info: #7fdbca;
+  --vscode-titlebar: #011627;
+  --vscode-activitybar: #011627;
+  --vscode-tab-inactive: #010e1a;
+  --vscode-selection: #1d3b53;
+  --vscode-hover: #0b2942;
+  --vscode-statusbar-bg: #011627;
+  --vscode-statusbar-fg: #5f7e97;
+  --syntax-keyword: #c792ea;
+  --syntax-control: #c792ea;
+  --syntax-function: #82aaff;
+  --syntax-string: #ecc48d;
+  --syntax-comment: #637777;
+  --syntax-type: #7fdbca;
+  --syntax-variable: #d6deeb;
+  --syntax-number: #f78c6c;
+  --syntax-punctuation: #d6deeb;
+}
+
+/* ── Nord ── */
+html[data-skin='vscode'][data-vscode-theme='nord'] {
+  --color-primary: #88c0d0;
+  --color-secondary: #b48ead;
+  --color-accent: #ebcb8b;
+  --color-background: #2e3440;
+  --color-surface: #2e3440;
+  --color-surface-elevated: #3b4252;
+  --color-text: #d8dee9;
+  --color-text-secondary: #616e88;
+  --color-border: #3b4252;
+  --color-muted: #2e3440;
+  --color-glow: #88c0d0;
+  --color-link: #88c0d0;
+  --color-link-hover: #8fbcbb;
+  --color-emphasis: #88c0d0;
+  --color-success: #a3be8c;
+  --color-warning: #ebcb8b;
+  --color-error: #bf616a;
+  --color-info: #81a1c1;
+  --vscode-titlebar: #2e3440;
+  --vscode-activitybar: #2e3440;
+  --vscode-tab-inactive: #2e3440;
+  --vscode-selection: #434c5e;
+  --vscode-hover: #3b4252;
+  --vscode-statusbar-bg: #3b4252;
+  --vscode-statusbar-fg: #d8dee9;
+  --syntax-keyword: #81a1c1;
+  --syntax-control: #81a1c1;
+  --syntax-function: #88c0d0;
+  --syntax-string: #a3be8c;
+  --syntax-comment: #616e88;
+  --syntax-type: #8fbcbb;
+  --syntax-variable: #d8dee9;
+  --syntax-number: #b48ead;
+  --syntax-punctuation: #eceff4;
+}
+
+/* ── Gruvbox Dark ── */
+html[data-skin='vscode'][data-vscode-theme='gruvbox-dark'] {
+  --color-primary: #fabd2f;
+  --color-secondary: #d3869b;
+  --color-accent: #fe8019;
+  --color-background: #282828;
+  --color-surface: #1d2021;
+  --color-surface-elevated: #3c3836;
+  --color-text: #ebdbb2;
+  --color-text-secondary: #928374;
+  --color-border: #3c3836;
+  --color-muted: #1d2021;
+  --color-glow: #fabd2f;
+  --color-link: #83a598;
+  --color-link-hover: #8ec07c;
+  --color-emphasis: #fabd2f;
+  --color-success: #b8bb26;
+  --color-warning: #fabd2f;
+  --color-error: #fb4934;
+  --color-info: #83a598;
+  --vscode-titlebar: #1d2021;
+  --vscode-activitybar: #1d2021;
+  --vscode-tab-inactive: #1d2021;
+  --vscode-selection: #504945;
+  --vscode-hover: #3c3836;
+  --vscode-statusbar-bg: #504945;
+  --vscode-statusbar-fg: #ebdbb2;
+  --syntax-keyword: #fb4934;
+  --syntax-control: #fb4934;
+  --syntax-function: #b8bb26;
+  --syntax-string: #b8bb26;
+  --syntax-comment: #928374;
+  --syntax-type: #fabd2f;
+  --syntax-variable: #ebdbb2;
+  --syntax-number: #d3869b;
+  --syntax-punctuation: #ebdbb2;
+}
+
+/* ── Synthwave '84 ── */
+html[data-skin='vscode'][data-vscode-theme='synthwave-84'] {
+  --color-primary: #ff7edb;
+  --color-secondary: #fede5d;
+  --color-accent: #36f9f6;
+  --color-background: #262335;
+  --color-surface: #241b2f;
+  --color-surface-elevated: #2a2139;
+  --color-text: #f4eee4;
+  --color-text-secondary: #848bbd;
+  --color-border: #34294f;
+  --color-muted: #241b2f;
+  --color-glow: #ff7edb;
+  --color-link: #36f9f6;
+  --color-link-hover: #72f1ff;
+  --color-emphasis: #ff7edb;
+  --color-success: #72f1b8;
+  --color-warning: #fede5d;
+  --color-error: #fe4450;
+  --color-info: #36f9f6;
+  --vscode-titlebar: #241b2f;
+  --vscode-activitybar: #241b2f;
+  --vscode-tab-inactive: #241b2f;
+  --vscode-selection: #463465;
+  --vscode-hover: #34294f;
+  --vscode-statusbar-bg: #241b2f;
+  --vscode-statusbar-fg: #ff7edb;
+  --syntax-keyword: #fede5d;
+  --syntax-control: #f97e72;
+  --syntax-function: #36f9f6;
+  --syntax-string: #ff8b39;
+  --syntax-comment: #848bbd;
+  --syntax-type: #fe4450;
+  --syntax-variable: #ff7edb;
+  --syntax-number: #f97e72;
+  --syntax-punctuation: #f4eee4;
+}
+
+/* ── Palenight ── */
+html[data-skin='vscode'][data-vscode-theme='palenight'] {
+  --color-primary: #82aaff;
+  --color-secondary: #c792ea;
+  --color-accent: #ffcb6b;
+  --color-background: #292d3e;
+  --color-surface: #292d3e;
+  --color-surface-elevated: #333747;
+  --color-text: #a6accd;
+  --color-text-secondary: #676e95;
+  --color-border: #333747;
+  --color-muted: #292d3e;
+  --color-glow: #82aaff;
+  --color-link: #82aaff;
+  --color-link-hover: #a6c3ff;
+  --color-emphasis: #82aaff;
+  --color-success: #c3e88d;
+  --color-warning: #ffcb6b;
+  --color-error: #f07178;
+  --color-info: #89ddff;
+  --vscode-titlebar: #292d3e;
+  --vscode-activitybar: #292d3e;
+  --vscode-tab-inactive: #292d3e;
+  --vscode-selection: #444267;
+  --vscode-hover: #333747;
+  --vscode-statusbar-bg: #292d3e;
+  --vscode-statusbar-fg: #676e95;
+  --syntax-keyword: #c792ea;
+  --syntax-control: #c792ea;
+  --syntax-function: #82aaff;
+  --syntax-string: #c3e88d;
+  --syntax-comment: #676e95;
+  --syntax-type: #ffcb6b;
+  --syntax-variable: #a6accd;
+  --syntax-number: #f78c6c;
+  --syntax-punctuation: #89ddff;
+}
+
+/* ── Cobalt2 ── */
+html[data-skin='vscode'][data-vscode-theme='cobalt2'] {
+  --color-primary: #ffc600;
+  --color-secondary: #ff9d00;
+  --color-accent: #9effff;
+  --color-background: #193549;
+  --color-surface: #15232d;
+  --color-surface-elevated: #1f4662;
+  --color-text: #ffffff;
+  --color-text-secondary: #7f93a3;
+  --color-border: #1f4662;
+  --color-muted: #15232d;
+  --color-glow: #ffc600;
+  --color-link: #ffc600;
+  --color-link-hover: #ffe04d;
+  --color-emphasis: #ffc600;
+  --color-success: #3ad900;
+  --color-warning: #ffc600;
+  --color-error: #ff628c;
+  --color-info: #9effff;
+  --vscode-titlebar: #15232d;
+  --vscode-activitybar: #15232d;
+  --vscode-tab-inactive: #15232d;
+  --vscode-selection: #0050a4;
+  --vscode-hover: #1f4662;
+  --vscode-statusbar-bg: #1989d6;
+  --vscode-statusbar-fg: #ffffff;
+  --syntax-keyword: #ff9d00;
+  --syntax-control: #ff9d00;
+  --syntax-function: #ffc600;
+  --syntax-string: #3ad900;
+  --syntax-comment: #0088ff;
+  --syntax-type: #80fcff;
+  --syntax-variable: #ffffff;
+  --syntax-number: #ff628c;
+  --syntax-punctuation: #ffffff;
+}
+
+/* ── Ayu Mirage ── */
+html[data-skin='vscode'][data-vscode-theme='ayu-mirage'] {
+  --color-primary: #73d0ff;
+  --color-secondary: #d4bfff;
+  --color-accent: #ffcc66;
+  --color-background: #1f2430;
+  --color-surface: #1c212b;
+  --color-surface-elevated: #232834;
+  --color-text: #cbccc6;
+  --color-text-secondary: #707a8c;
+  --color-border: #232834;
+  --color-muted: #1c212b;
+  --color-glow: #ffcc66;
+  --color-link: #5ccfe6;
+  --color-link-hover: #73d0ff;
+  --color-emphasis: #ffcc66;
+  --color-success: #bae67e;
+  --color-warning: #ffcc66;
+  --color-error: #ff6666;
+  --color-info: #5ccfe6;
+  --vscode-titlebar: #1c212b;
+  --vscode-activitybar: #1c212b;
+  --vscode-tab-inactive: #1c212b;
+  --vscode-selection: #34455a;
+  --vscode-hover: #232834;
+  --vscode-statusbar-bg: #1c212b;
+  --vscode-statusbar-fg: #707a8c;
+  --syntax-keyword: #ffa759;
+  --syntax-control: #ffa759;
+  --syntax-function: #ffd580;
+  --syntax-string: #bae67e;
+  --syntax-comment: #5c6773;
+  --syntax-type: #73d0ff;
+  --syntax-variable: #cbccc6;
+  --syntax-number: #ffcc66;
+  --syntax-punctuation: #cbccc6;
+}
+
+/* ── Catppuccin Mocha ── */
+html[data-skin='vscode'][data-vscode-theme='catppuccin-mocha'] {
+  --color-primary: #89b4fa;
+  --color-secondary: #cba6f7;
+  --color-accent: #f9e2af;
+  --color-background: #1e1e2e;
+  --color-surface: #181825;
+  --color-surface-elevated: #313244;
+  --color-text: #cdd6f4;
+  --color-text-secondary: #9399b2;
+  --color-border: #313244;
+  --color-muted: #181825;
+  --color-glow: #89b4fa;
+  --color-link: #89b4fa;
+  --color-link-hover: #b4befe;
+  --color-emphasis: #89b4fa;
+  --color-success: #a6e3a1;
+  --color-warning: #f9e2af;
+  --color-error: #f38ba8;
+  --color-info: #89dceb;
+  --vscode-titlebar: #181825;
+  --vscode-activitybar: #181825;
+  --vscode-tab-inactive: #181825;
+  --vscode-selection: #313244;
+  --vscode-hover: #313244;
+  --vscode-statusbar-bg: #181825;
+  --vscode-statusbar-fg: #9399b2;
+  --syntax-keyword: #cba6f7;
+  --syntax-control: #cba6f7;
+  --syntax-function: #89b4fa;
+  --syntax-string: #a6e3a1;
+  --syntax-comment: #6c7086;
+  --syntax-type: #f9e2af;
+  --syntax-variable: #cdd6f4;
+  --syntax-number: #fab387;
+  --syntax-punctuation: #9399b2;
+}
+
+/* ── Solarized Dark ── */
+html[data-skin='vscode'][data-vscode-theme='solarized-dark'] {
+  --color-primary: #268bd2;
+  --color-secondary: #6c71c4;
+  --color-accent: #b58900;
+  --color-background: #002b36;
+  --color-surface: #00252e;
+  --color-surface-elevated: #073642;
+  --color-text: #93a1a1;
+  --color-text-secondary: #586e75;
+  --color-border: #073642;
+  --color-muted: #00252e;
+  --color-glow: #268bd2;
+  --color-link: #268bd2;
+  --color-link-hover: #2aa198;
+  --color-emphasis: #268bd2;
+  --color-success: #859900;
+  --color-warning: #b58900;
+  --color-error: #dc322f;
+  --color-info: #2aa198;
+  --vscode-titlebar: #00252e;
+  --vscode-activitybar: #00252e;
+  --vscode-tab-inactive: #00252e;
+  --vscode-selection: #073642;
+  --vscode-hover: #073642;
+  --vscode-statusbar-bg: #00252e;
+  --vscode-statusbar-fg: #93a1a1;
+  --syntax-keyword: #859900;
+  --syntax-control: #cb4b16;
+  --syntax-function: #b58900;
+  --syntax-string: #2aa198;
+  --syntax-comment: #586e75;
+  --syntax-type: #b58900;
+  --syntax-variable: #268bd2;
+  --syntax-number: #d33682;
+  --syntax-punctuation: #93a1a1;
+}
+
+/* ── Solarized Light ── */
+html[data-skin='vscode'][data-vscode-theme='solarized-light'] {
+  --color-primary: #268bd2;
+  --color-secondary: #6c71c4;
+  --color-accent: #b58900;
+  --color-background: #fdf6e3;
+  --color-surface: #eee8d5;
+  --color-surface-elevated: #fdf6e3;
+  --color-text: #586e75;
+  --color-text-secondary: #93a1a1;
+  --color-border: #ddd6c1;
+  --color-muted: #eee8d5;
+  --color-glow: #268bd2;
+  --color-link: #268bd2;
+  --color-link-hover: #2aa198;
+  --color-emphasis: #268bd2;
+  --color-success: #859900;
+  --color-warning: #b58900;
+  --color-error: #dc322f;
+  --color-info: #2aa198;
+  --vscode-titlebar: #eee8d5;
+  --vscode-activitybar: #eee8d5;
+  --vscode-tab-inactive: #d9d2bf;
+  --vscode-selection: #d3cbb7;
+  --vscode-hover: #eae3cf;
+  --vscode-statusbar-bg: #eee8d5;
+  --vscode-statusbar-fg: #586e75;
+  --syntax-keyword: #859900;
+  --syntax-control: #cb4b16;
+  --syntax-function: #b58900;
+  --syntax-string: #2aa198;
+  --syntax-comment: #93a1a1;
+  --syntax-type: #b58900;
+  --syntax-variable: #268bd2;
+  --syntax-number: #d33682;
+  --syntax-punctuation: #586e75;
+}
+
+/* ── Quiet Light ── */
+html[data-skin='vscode'][data-vscode-theme='quiet-light'] {
+  --color-primary: #4b69c6;
+  --color-secondary: #7a3e9d;
+  --color-accent: #aa3731;
+  --color-background: #f5f5f5;
+  --color-surface: #ececec;
+  --color-surface-elevated: #ffffff;
+  --color-text: #333333;
+  --color-text-secondary: #777777;
+  --color-border: #dcdcdc;
+  --color-muted: #ececec;
+  --color-glow: #4b69c6;
+  --color-link: #4b69c6;
+  --color-link-hover: #3a52a0;
+  --color-emphasis: #4b69c6;
+  --color-success: #448c27;
+  --color-warning: #a67d00;
+  --color-error: #aa3731;
+  --color-info: #4b69c6;
+  --vscode-titlebar: #ececec;
+  --vscode-activitybar: #ececec;
+  --vscode-tab-inactive: #e0e0e0;
+  --vscode-selection: #c9d0d9;
+  --vscode-hover: #e8e8e8;
+  --vscode-statusbar-bg: #705697;
+  --vscode-statusbar-fg: #ffffff;
+  --syntax-keyword: #4b69c6;
+  --syntax-control: #a90d91;
+  --syntax-function: #aa3731;
+  --syntax-string: #448c27;
+  --syntax-comment: #aaaaaa;
+  --syntax-type: #7a3e9d;
+  --syntax-variable: #7a3e9d;
+  --syntax-number: #9c5d27;
+  --syntax-punctuation: #333333;
+}
+
+/* ── Ayu Light ── */
+html[data-skin='vscode'][data-vscode-theme='ayu-light'] {
+  --color-primary: #399ee6;
+  --color-secondary: #a37acc;
+  --color-accent: #ffaa33;
+  --color-background: #fcfcfc;
+  --color-surface: #f3f4f5;
+  --color-surface-elevated: #ffffff;
+  --color-text: #5c6166;
+  --color-text-secondary: #8a9199;
+  --color-border: #e7e8e9;
+  --color-muted: #f3f4f5;
+  --color-glow: #ffaa33;
+  --color-link: #399ee6;
+  --color-link-hover: #2d7fc0;
+  --color-emphasis: #ffaa33;
+  --color-success: #86b300;
+  --color-warning: #f2ae49;
+  --color-error: #e65050;
+  --color-info: #55b4d4;
+  --vscode-titlebar: #f3f4f5;
+  --vscode-activitybar: #f3f4f5;
+  --vscode-tab-inactive: #ececed;
+  --vscode-selection: #d1e4f4;
+  --vscode-hover: #e7e8e9;
+  --vscode-statusbar-bg: #f3f4f5;
+  --vscode-statusbar-fg: #8a9199;
+  --syntax-keyword: #fa8d3e;
+  --syntax-control: #fa8d3e;
+  --syntax-function: #f2ae49;
+  --syntax-string: #86b300;
+  --syntax-comment: #abb0b6;
+  --syntax-type: #399ee6;
+  --syntax-variable: #5c6166;
+  --syntax-number: #a37acc;
+  --syntax-punctuation: #5c6166;
+}
+
+/* ── Catppuccin Latte ── */
+html[data-skin='vscode'][data-vscode-theme='catppuccin-latte'] {
+  --color-primary: #1e66f5;
+  --color-secondary: #8839ef;
+  --color-accent: #df8e1d;
+  --color-background: #eff1f5;
+  --color-surface: #e6e9ef;
+  --color-surface-elevated: #dce0e8;
+  --color-text: #4c4f69;
+  --color-text-secondary: #6c6f85;
+  --color-border: #ccd0da;
+  --color-muted: #e6e9ef;
+  --color-glow: #1e66f5;
+  --color-link: #1e66f5;
+  --color-link-hover: #209fb5;
+  --color-emphasis: #1e66f5;
+  --color-success: #40a02b;
+  --color-warning: #df8e1d;
+  --color-error: #d20f39;
+  --color-info: #04a5e5;
+  --vscode-titlebar: #e6e9ef;
+  --vscode-activitybar: #e6e9ef;
+  --vscode-tab-inactive: #dce0e8;
+  --vscode-selection: #bcc0cc;
+  --vscode-hover: #dce0e8;
+  --vscode-statusbar-bg: #e6e9ef;
+  --vscode-statusbar-fg: #6c6f85;
+  --syntax-keyword: #8839ef;
+  --syntax-control: #8839ef;
+  --syntax-function: #1e66f5;
+  --syntax-string: #40a02b;
+  --syntax-comment: #8c8fa1;
+  --syntax-type: #df8e1d;
+  --syntax-variable: #4c4f69;
+  --syntax-number: #fe640b;
+  --syntax-punctuation: #6c6f85;
+}
+
 /* Plain editor backdrop, no ambience texture. */
 html[data-skin='vscode'] body {
   background-color: var(--color-background);

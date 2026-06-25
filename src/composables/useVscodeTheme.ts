@@ -13,8 +13,23 @@ export const VSCODE_THEMES: readonly VscodeTheme[] = [
   { id: 'dark-modern', label: 'Dark Modern', mode: 'dark' },
   { id: 'one-dark-pro', label: 'One Dark Pro', mode: 'dark' },
   { id: 'dracula', label: 'Dracula', mode: 'dark' },
+  { id: 'monokai', label: 'Monokai', mode: 'dark' },
+  { id: 'tokyo-night', label: 'Tokyo Night', mode: 'dark' },
+  { id: 'night-owl', label: 'Night Owl', mode: 'dark' },
+  { id: 'nord', label: 'Nord', mode: 'dark' },
+  { id: 'gruvbox-dark', label: 'Gruvbox Dark', mode: 'dark' },
+  { id: 'synthwave-84', label: "SynthWave '84", mode: 'dark' },
+  { id: 'palenight', label: 'Palenight', mode: 'dark' },
+  { id: 'cobalt2', label: 'Cobalt2', mode: 'dark' },
+  { id: 'ayu-mirage', label: 'Ayu Mirage', mode: 'dark' },
+  { id: 'catppuccin-mocha', label: 'Catppuccin Mocha', mode: 'dark' },
+  { id: 'solarized-dark', label: 'Solarized Dark', mode: 'dark' },
   { id: 'light-modern', label: 'Light Modern', mode: 'light' },
   { id: 'github-light', label: 'GitHub Light', mode: 'light' },
+  { id: 'solarized-light', label: 'Solarized Light', mode: 'light' },
+  { id: 'quiet-light', label: 'Quiet Light', mode: 'light' },
+  { id: 'ayu-light', label: 'Ayu Light', mode: 'light' },
+  { id: 'catppuccin-latte', label: 'Catppuccin Latte', mode: 'light' },
 ];
 
 const THEME_KEY = 'app-vscode-theme';
