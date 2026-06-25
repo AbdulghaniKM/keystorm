@@ -24,6 +24,13 @@ export interface RenderColors {
   surfaceElevated: string;
   outline: string;
   glow: string;
+  // Syntax palette — archetype decoration borrows the editor's own token colors
+  // so a comment, a keyword marker, a string, and a function name all read as
+  // ordinary highlighting rather than game UI.
+  syntaxComment: string;
+  syntaxKeyword: string;
+  syntaxString: string;
+  syntaxFunction: string;
 }
 
 const COLOR_FALLBACKS: RenderColors = {
@@ -40,6 +47,10 @@ const COLOR_FALLBACKS: RenderColors = {
   surfaceElevated: '#2d2d2d',
   outline: '#2b2b2b',
   glow: '#569cd6',
+  syntaxComment: '#6a9955',
+  syntaxKeyword: '#569cd6',
+  syntaxString: '#ce9178',
+  syntaxFunction: '#dcdcaa',
 };
 
 function readVar(styles: CSSStyleDeclaration, name: string, fallback: string): string {
@@ -63,6 +74,10 @@ export function readRenderColors(el: HTMLElement): RenderColors {
     surfaceElevated: readVar(styles, '--color-surface-elevated', COLOR_FALLBACKS.surfaceElevated),
     outline: readVar(styles, '--color-border', COLOR_FALLBACKS.outline),
     glow: readVar(styles, '--color-glow', COLOR_FALLBACKS.glow),
+    syntaxComment: readVar(styles, '--syntax-comment', COLOR_FALLBACKS.syntaxComment),
+    syntaxKeyword: readVar(styles, '--syntax-keyword', COLOR_FALLBACKS.syntaxKeyword),
+    syntaxString: readVar(styles, '--syntax-string', COLOR_FALLBACKS.syntaxString),
+    syntaxFunction: readVar(styles, '--syntax-function', COLOR_FALLBACKS.syntaxFunction),
   };
 }
 
@@ -96,6 +111,31 @@ const SQUIGGLE_AMPLITUDE = 2.5;
 const SQUIGGLE_STEP = 4;
 const MIN_WORD_ALPHA = 0.55;
 
+// ─── Spawn telegraph (#3) ──────────────────────────────────────────────────
+// A freshly spawned word tints its row once and fades out — the editor briefly
+// highlighting a line that just changed. No strobe and no accent fill: a blinking
+// full-width accent band reads as an arcade flash and would break the disguise.
+// Mirrors the engine's SPAWN_TELEGRAPH_MS so spawnFlashMs maps to a 1→0 fade.
+const SPAWN_TELEGRAPH_MS = 350;
+const SPAWN_FLASH_ROW_ALPHA = 0.5;
+
+// ─── Hot lane (#8) ─────────────────────────────────────────────────────────
+// The hot row's line number breathes red so the dangerous lane reads as a
+// flagged line, like a persistent diagnostic in the gutter.
+const HOT_LANE_PULSE_PERIOD_MS = 900;
+
+// ─── Overflow (#10) ────────────────────────────────────────────────────────
+// Backlog intensifies the base-line danger: a faint warning band creeps in from
+// the gutter as more words pile into the critical zone. Mirrors the engine's
+// own overflow zone (baseLine × this fraction) so the visual tracks the rule.
+const OVERFLOW_ZONE_FRACTION = 4;
+const OVERFLOW_BAND_MAX_ALPHA = 0.12;
+
+// ─── Archetype decoration (#6) ─────────────────────────────────────────────
+const TANK_FONT_SCALE = 1.18;
+const COMMENT_ALPHA_SCALE = 0.78;
+const BRACKET_CONNECTOR_ALPHA = 0.3;
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -103,6 +143,9 @@ function clamp01(value: number): number {
 export class GameRenderer {
   private cssWidth = 0;
   private cssHeight = 0;
+  // Reused row → line-number-color map, cleared and refilled each frame so the
+  // gutter HUD costs no per-frame Map allocation. Keyed by row index.
+  private readonly rowHighlights = new Map<number, string>();
 
   constructor(private readonly ctx: CanvasRenderingContext2D) {}
 
@@ -126,15 +169,30 @@ export class GameRenderer {
     const proximity = this.nearestThreatProximity(enemies, gutter, width);
     const frontMost = this.frontMostEnemy(enemies);
     const highlights = this.gutterHighlights(enemies, frontMost, rowHeight, gutter, width, colors);
+    const overflow = this.overflowIntensity(enemies, gutter);
 
     ctx.clearRect(0, 0, width, this.cssHeight);
     // The editor body renders outside the shake transform so the structure stays
     // steady while impacts nudge only the words.
-    this.drawEditorField(colors, px, rowHeight, gutter, highlights, proximity);
+    this.drawEditorField(colors, px, rowHeight, gutter, highlights, proximity, overflow);
+    this.drawHotLanes(engine.hotLaneYs, rowHeight, gutter, px, colors);
     ctx.save();
     this.applyShake(shakeMs);
-    this.drawEnemies(enemies, locale, colors, px, gutter, width);
+    this.drawEnemies(enemies, locale, colors, px, gutter, width, rowHeight);
     ctx.restore();
+  }
+
+  // Backlog danger (#10): how full the engine's critical overflow zone is, 0..1.
+  // Counts live words whose marching anchor has crept inside baseLine × the zone
+  // span, mirroring the engine's own overflow rule so the visual tracks it.
+  private overflowIntensity(enemies: Enemy[], gutter: number): number {
+    const criticalEdge = gutter + gutter * OVERFLOW_ZONE_FRACTION;
+    let backlog = 0;
+    for (const enemy of enemies) {
+      if (enemy.shatter !== undefined) continue;
+      if (enemy.x <= criticalEdge) backlog++;
+    }
+    return clamp01(backlog / 6);
   }
 
   // Full-bleed editor body: a flat fill, a current-line highlight, and a real
@@ -148,6 +206,7 @@ export class GameRenderer {
     gutterWidth: number,
     highlights: Map<number, string>,
     proximity: number,
+    overflow: number,
   ): void {
     const { ctx } = this;
     const width = this.cssWidth;
@@ -165,10 +224,23 @@ export class GameRenderer {
     ctx.fillRect(gutterWidth, activeRow * rowHeight, width - gutterWidth, rowHeight);
     ctx.globalAlpha = 1;
 
+    // Overflow band (#10): as the backlog fills the critical zone, a faint red
+    // wash creeps in from the base line — the editor's own "lines with problems"
+    // shading deepening, never a glow, so a crowded field reads as mounting risk.
+    if (overflow > 0) {
+      const bandWidth = (width - gutterWidth) * 0.5 * overflow;
+      ctx.globalAlpha = OVERFLOW_BAND_MAX_ALPHA * overflow;
+      ctx.fillStyle = colors.danger;
+      ctx.fillRect(gutterWidth, 0, bandWidth, height);
+      ctx.globalAlpha = 1;
+    }
+
     // Gutter divider doubles as the base line — it reddens and thickens as the
-    // nearest word closes in, so the danger lives on the editor's own chrome.
-    ctx.strokeStyle = proximity > 0.55 ? colors.danger : colors.outline;
-    ctx.lineWidth = 1 + proximity * 1.5;
+    // nearest word closes in (and as backlog mounts), so the danger lives on the
+    // editor's own chrome rather than any added arcade flourish.
+    const danger = Math.max(proximity, overflow);
+    ctx.strokeStyle = danger > 0.55 ? colors.danger : colors.outline;
+    ctx.lineWidth = 1 + danger * 1.5 + overflow;
     ctx.beginPath();
     ctx.moveTo(gutterWidth, 0);
     ctx.lineTo(gutterWidth, height);
@@ -202,6 +274,41 @@ export class GameRenderer {
     ctx.lineTo(3, centerY + size);
     ctx.closePath();
     ctx.fill();
+  }
+
+  // Hot lane (#8): repaint the hot row's line number(s) in a breathing red so the
+  // dangerous lane reads as a flagged line in the gutter. Drawn after the field
+  // so it overrides the default line-number color on exactly those rows. Reuses
+  // the engine's reused hotLaneYs buffer — no per-frame allocation here.
+  private drawHotLanes(
+    hotLaneYs: number[],
+    rowHeight: number,
+    gutterWidth: number,
+    px: number,
+    colors: RenderColors,
+  ): void {
+    if (hotLaneYs.length === 0) return;
+    const { ctx } = this;
+    const pulse = 0.6 + 0.4 * this.pulse(HOT_LANE_PULSE_PERIOD_MS);
+    ctx.save();
+    ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${FONT_FAMILY}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'right';
+    ctx.fillStyle = colors.danger;
+    for (const laneY of hotLaneYs) {
+      const lineNumber = Math.round(laneY / rowHeight - 0.5) + 1;
+      if (lineNumber < 1) continue;
+      ctx.globalAlpha = pulse;
+      ctx.fillText(String(lineNumber), gutterWidth - 8, laneY);
+    }
+    ctx.restore();
+  }
+
+  // A 0..1 triangle wave driven by the wall clock — a calm, steady breath for
+  // telegraph/hot-lane pulses. No state, so it costs nothing across frames.
+  private pulse(periodMs: number): number {
+    const phase = (performance.now() % periodMs) / periodMs;
+    return phase < 0.5 ? phase * 2 : 2 - phase * 2;
   }
 
   private applyShake(shakeMs: number): void {
@@ -248,7 +355,8 @@ export class GameRenderer {
     width: number,
     colors: RenderColors,
   ): Map<number, string> {
-    const map = new Map<number, string>();
+    const map = this.rowHighlights;
+    map.clear();
     for (const enemy of enemies) {
       const row = Math.round(enemy.y / rowHeight - 0.5);
       if (row < 0) continue;
@@ -272,24 +380,168 @@ export class GameRenderer {
     px: number,
     gutter: number,
     width: number,
+    rowHeight: number,
   ): void {
     const { ctx } = this;
     ctx.font = `400 ${px}px ${FONT_FAMILY}`;
     ctx.textBaseline = 'middle';
+    // Bracket pairs (#6) get a faint connector drawn under the words so the two
+    // linked halves read as one { … } span; done first so glyphs stay on top.
+    this.drawBracketConnectors(enemies, locale, colors, px);
+    // Merge encounters (#7) get their real conflict boundary lines drawn around
+    // the vertically-stacked HEAD and branch blocks before the content glyphs.
+    this.drawConflictFrames(enemies, locale, colors, rowHeight);
     for (const enemy of enemies) {
       if (enemy.shatter !== undefined) {
         this.drawShatter(enemy, locale, colors, px);
         continue;
       }
+      this.drawSpawnTelegraph(enemy, colors, px);
       const near = this.nearness(enemy, gutter, width);
       const critical = near >= CRITICAL_NEARNESS;
-      const alpha = enemy.active ? 1 : MIN_WORD_ALPHA + (1 - MIN_WORD_ALPHA) * near;
+      let alpha = enemy.active ? 1 : MIN_WORD_ALPHA + (1 - MIN_WORD_ALPHA) * near;
+      if (enemy.kind === 'comment') alpha *= COMMENT_ALPHA_SCALE;
       if (locale === 'ar') {
         this.drawArabicEnemy(enemy, colors, px, alpha, critical);
       } else {
         this.drawLatinEnemy(enemy, colors, px, alpha, critical);
       }
     }
+  }
+
+  // Spawn telegraph (#3): while a word is still announcing itself, tint its row
+  // with a single surface wash that fades out over the telegraph window — the
+  // editor briefly highlighting a line that just changed. No blink, no accent
+  // fill: a strobing accent band would read as an arcade flash and break cover.
+  private drawSpawnTelegraph(enemy: Enemy, colors: RenderColors, px: number): void {
+    if (enemy.spawnFlashMs === undefined || enemy.spawnFlashMs <= 0) return;
+    const { ctx } = this;
+    const fade = clamp01(enemy.spawnFlashMs / SPAWN_TELEGRAPH_MS);
+    const bandHeight = px + SELECTION_PADDING_Y * 2;
+    ctx.save();
+    ctx.globalAlpha = SPAWN_FLASH_ROW_ALPHA * fade;
+    ctx.fillStyle = colors.surfaceElevated;
+    ctx.fillRect(0, enemy.y - bandHeight / 2, this.cssWidth, bandHeight);
+    ctx.restore();
+  }
+
+  // Bracket connector (#6): join each linked bracket pair with a faint horizontal
+  // tie between the two words' left edges, reading as the span a { … } encloses.
+  private drawBracketConnectors(
+    enemies: Enemy[],
+    locale: Locale,
+    colors: RenderColors,
+    px: number,
+  ): void {
+    const { ctx } = this;
+    for (const opener of enemies) {
+      if (opener.kind !== 'bracket' || opener.linkId === undefined) continue;
+      if (opener.shatter !== undefined) continue;
+      const partner = this.bracketPartner(enemies, opener);
+      if (!partner || partner.id <= opener.id) continue;
+      const a = this.wordLeft(opener, locale);
+      const b = this.wordLeft(partner, locale);
+      ctx.save();
+      ctx.globalAlpha = BRACKET_CONNECTOR_ALPHA;
+      ctx.strokeStyle = colors.syntaxFunction;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(a, opener.y);
+      ctx.lineTo(b, partner.y);
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
+  // Merge-conflict framing (#7): the encounter is a real VERTICAL conflict stack.
+  // In one pass over the frame's words, find the bounds of the HEAD block and the
+  // incoming branch block (kept apart by enemy.conflictSide from the engine), then
+  // draw the genuine boundary lines — `<<<<<<< HEAD` above the head block,
+  // `=======` between the two blocks, `>>>>>>> branch` below the branch block.
+  // The content words sit on their own lines, so the markers read exactly like git
+  // conflict markers rather than a gimmick. Single pass keeps this off the O(n²)
+  // per-partner scans the old inline separator did every frame.
+  private drawConflictFrames(
+    enemies: Enemy[],
+    locale: Locale,
+    colors: RenderColors,
+    rowHeight: number,
+  ): void {
+    let headTopY = Number.POSITIVE_INFINITY;
+    let headBottomY = Number.NEGATIVE_INFINITY;
+    let branchTopY = Number.POSITIVE_INFINITY;
+    let branchBottomY = Number.NEGATIVE_INFINITY;
+    let blockLeft = Number.POSITIVE_INFINITY;
+    for (const enemy of enemies) {
+      if (enemy.kind !== 'conflict' || enemy.conflictSide === undefined) continue;
+      if (enemy.shatter !== undefined) continue;
+      blockLeft = Math.min(blockLeft, this.wordLeft(enemy, locale));
+      if (enemy.conflictSide === 'head') {
+        headTopY = Math.min(headTopY, enemy.y);
+        headBottomY = Math.max(headBottomY, enemy.y);
+      } else {
+        branchTopY = Math.min(branchTopY, enemy.y);
+        branchBottomY = Math.max(branchBottomY, enemy.y);
+      }
+    }
+    if (blockLeft === Number.POSITIVE_INFINITY) return;
+    this.paintConflictMarkers(
+      colors,
+      blockLeft,
+      rowHeight,
+      headTopY,
+      headBottomY,
+      branchTopY,
+      branchBottomY,
+    );
+  }
+
+  // Paint the three conflict boundary lines around the stacked blocks. Each marker
+  // sits a half-row outside its block so it reads as the line just above/below the
+  // content, never overlapping a typeable word. The `=======` divider lands in the
+  // gap between the head and branch blocks.
+  private paintConflictMarkers(
+    colors: RenderColors,
+    left: number,
+    rowHeight: number,
+    headTopY: number,
+    headBottomY: number,
+    branchTopY: number,
+    branchBottomY: number,
+  ): void {
+    const { ctx } = this;
+    const hasHead = headTopY !== Number.POSITIVE_INFINITY;
+    const hasBranch = branchTopY !== Number.POSITIVE_INFINITY;
+    ctx.save();
+    ctx.globalAlpha = BRACKET_CONNECTOR_ALPHA;
+    ctx.fillStyle = colors.syntaxKeyword;
+    ctx.direction = 'ltr';
+    ctx.textAlign = 'left';
+    if (hasHead) {
+      ctx.fillText('<<<<<<< HEAD', left, Math.max(rowHeight / 2, headTopY - rowHeight / 2));
+    }
+    if (hasHead && hasBranch) {
+      ctx.fillText('=======', left, (headBottomY + branchTopY) / 2);
+    }
+    if (hasBranch) {
+      const bottom = Math.min(this.cssHeight - rowHeight / 2, branchBottomY + rowHeight / 2);
+      ctx.fillText('>>>>>>> branch', left, bottom);
+    }
+    ctx.restore();
+  }
+
+  private bracketPartner(enemies: Enemy[], opener: Enemy): Enemy | undefined {
+    for (const candidate of enemies) {
+      if (candidate === opener) continue;
+      if (candidate.kind === 'bracket' && candidate.linkId === opener.linkId) return candidate;
+    }
+    return undefined;
+  }
+
+  // The word's painted left edge, anchor-aware (Arabic anchors on the right).
+  private wordLeft(enemy: Enemy, locale: Locale): number {
+    if (locale === 'ar') return enemy.x - this.ctx.measureText(enemy.word).width;
+    return enemy.x;
   }
 
   // A faint text-selection rectangle behind the active word, the same gesture as
@@ -312,13 +564,16 @@ export class GameRenderer {
     critical: boolean,
   ): void {
     const { ctx } = this;
+    const kindPx = this.archetypeFontPx(enemy, px);
+    ctx.font = `400 ${kindPx}px ${FONT_FAMILY}`;
     const typedText = enemy.word.slice(0, enemy.typed);
     const remainingText = enemy.word.slice(enemy.typed);
     const wordWidth = ctx.measureText(enemy.word).width;
     const typedWidth = ctx.measureText(typedText).width;
     const erroring = (enemy.errorMs ?? 0) > 0;
 
-    if (enemy.active) this.drawSelection(enemy.x, wordWidth, enemy.y, px, colors);
+    if (enemy.active) this.drawSelection(enemy.x, wordWidth, enemy.y, kindPx, colors);
+    this.drawLeadingMarker(enemy, colors, enemy.x, enemy.y, alpha, 'right');
 
     ctx.save();
     ctx.globalAlpha = alpha;
@@ -326,14 +581,16 @@ export class GameRenderer {
     ctx.textAlign = 'left';
     ctx.fillStyle = colors.typed;
     ctx.fillText(typedText, enemy.x, enemy.y);
-    ctx.fillStyle = this.remainingColor(enemy.active, erroring, colors);
+    ctx.fillStyle = this.archetypeRemainingColor(enemy, erroring, colors);
     ctx.fillText(remainingText, enemy.x + typedWidth, enemy.y);
     ctx.restore();
 
-    this.drawProgressUnderline(enemy.x, wordWidth, enemy, colors, enemy.y + px * 0.5, alpha);
-    this.drawWordStatus(enemy.x, wordWidth, enemy.y, px, erroring, critical, colors);
+    this.drawTrailingMarker(enemy, colors, enemy.x + wordWidth, enemy.y, alpha, 'left');
+    this.drawProgressUnderline(enemy.x, wordWidth, enemy, colors, enemy.y + kindPx * 0.5, alpha);
+    this.drawArchetypeStatus(enemy, enemy.x, wordWidth, enemy.y, kindPx, erroring, critical, colors);
 
-    if (enemy.active) this.drawCaret(enemy.x + typedWidth, enemy.y, px, colors.text);
+    if (enemy.active) this.drawCaret(enemy.x + typedWidth, enemy.y, kindPx, colors.text);
+    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
   }
 
   private drawArabicEnemy(
@@ -344,23 +601,135 @@ export class GameRenderer {
     critical: boolean,
   ): void {
     const { ctx } = this;
+    const kindPx = this.archetypeFontPx(enemy, px);
+    ctx.font = `400 ${kindPx}px ${FONT_FAMILY}`;
     const wordWidth = ctx.measureText(enemy.word).width;
     const erroring = (enemy.errorMs ?? 0) > 0;
     const left = enemy.x - wordWidth;
 
-    if (enemy.active) this.drawSelection(left, wordWidth, enemy.y, px, colors);
+    if (enemy.active) this.drawSelection(left, wordWidth, enemy.y, kindPx, colors);
+    // In RTL the leading edge is the left side, so markers mirror sides.
+    this.drawLeadingMarker(enemy, colors, enemy.x, enemy.y, alpha, 'left');
 
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.direction = 'rtl';
     ctx.textAlign = 'right';
-    ctx.fillStyle = this.remainingColor(enemy.active, erroring, colors);
+    ctx.fillStyle = this.archetypeRemainingColor(enemy, erroring, colors);
     ctx.fillText(enemy.word, enemy.x, enemy.y);
     ctx.restore();
 
+    this.drawTrailingMarker(enemy, colors, left, enemy.y, alpha, 'right');
     // Arabic underline is right-anchored from enemy.x leftward.
-    this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + px * 0.6, alpha);
-    this.drawWordStatus(left, wordWidth, enemy.y, px, erroring, critical, colors);
+    this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + kindPx * 0.6, alpha);
+    this.drawArchetypeStatus(enemy, left, wordWidth, enemy.y, kindPx, erroring, critical, colors);
+    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+  }
+
+  // Tank words (#6) read as a heavier long identifier — a touch bigger than the
+  // surrounding code. Every other kind keeps the field's base size.
+  private archetypeFontPx(enemy: Enemy, px: number): number {
+    return enemy.kind === 'tank' ? Math.round(px * TANK_FONT_SCALE) : px;
+  }
+
+  // Remaining-glyph color, archetype-aware: comments take the comment color and
+  // lints the error tone so a must-kill and an ignorable word look as different
+  // as real code, while preserving the active/erroring base behavior.
+  private archetypeRemainingColor(enemy: Enemy, erroring: boolean, colors: RenderColors): string {
+    if (erroring) return colors.danger;
+    if (enemy.kind === 'comment') return colors.syntaxComment;
+    if (enemy.kind === 'lint' && !enemy.active) return colors.danger;
+    if (enemy.active) return colors.enemyActive;
+    return colors.text;
+  }
+
+  // The decoration painted just before a word's leading edge (#6/#7): `// ` for a
+  // comment, and the merge-conflict / stack-trace framing for a boss word. The
+  // marker is right- or left-anchored to the word edge so it never shifts the
+  // typed glyphs. `side` is which edge of the word the marker abuts.
+  private drawLeadingMarker(
+    enemy: Enemy,
+    colors: RenderColors,
+    edgeX: number,
+    centerY: number,
+    alpha: number,
+    side: 'left' | 'right',
+  ): void {
+    const text = this.leadingMarkerFor(enemy);
+    if (text.length === 0) return;
+    const color = enemy.kind === 'comment' ? colors.syntaxComment : colors.syntaxKeyword;
+    this.drawMarkerText(text, color, edgeX, centerY, alpha, side);
+  }
+
+  private drawTrailingMarker(
+    enemy: Enemy,
+    colors: RenderColors,
+    edgeX: number,
+    centerY: number,
+    alpha: number,
+    side: 'left' | 'right',
+  ): void {
+    const text = this.trailingMarkerFor(enemy);
+    if (text.length === 0) return;
+    this.drawMarkerText(text, colors.syntaxKeyword, edgeX, centerY, alpha, side);
+  }
+
+  // Inline marker before a word's leading edge. A comment gets `// `; a lone
+  // stack-trace frame (a conflict word with no head/branch side) gets `at `. Merge
+  // words carry no inline marker — they are framed by the standalone conflict
+  // boundary lines drawn in drawConflictFrames, so the content never sits between
+  // a marker keyword and its label.
+  private leadingMarkerFor(enemy: Enemy): string {
+    if (enemy.kind === 'comment') return '// ';
+    if (enemy.kind === 'conflict' && enemy.conflictSide === undefined) return 'at ';
+    return '';
+  }
+
+  private trailingMarkerFor(enemy: Enemy): string {
+    if (enemy.kind === 'conflict' && enemy.conflictSide === undefined) return '()';
+    return '';
+  }
+
+  // Draw a decoration token abutting a word edge. Uses the current font so tank
+  // markers scale with the word; never repositions the typed glyphs.
+  private drawMarkerText(
+    text: string,
+    color: string,
+    edgeX: number,
+    centerY: number,
+    alpha: number,
+    side: 'left' | 'right',
+  ): void {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.85;
+    ctx.fillStyle = color;
+    ctx.direction = 'ltr';
+    ctx.textAlign = side === 'right' ? 'right' : 'left';
+    ctx.fillText(text, edgeX, centerY);
+    ctx.restore();
+  }
+
+  // Below-word feedback, archetype-aware (#6): a lint always wears the red
+  // diagnostics squiggle (its must-kill warning) and a bonus is struck through
+  // like a deprecated symbol; otherwise fall through to the shared error/critical
+  // status so existing behavior is preserved.
+  private drawArchetypeStatus(
+    enemy: Enemy,
+    left: number,
+    width: number,
+    centerY: number,
+    px: number,
+    erroring: boolean,
+    critical: boolean,
+    colors: RenderColors,
+  ): void {
+    if (enemy.bonus) this.drawStrike(left, width, centerY, colors.accent);
+    if (enemy.kind === 'lint' && !erroring) {
+      this.drawSquiggle(left, width, centerY + px * 0.82, colors.danger);
+      return;
+    }
+    this.drawWordStatus(left, width, centerY, px, erroring, critical, colors);
   }
 
   // Non-color-only feedback below every word: a red strike-through while a typo
@@ -450,14 +819,6 @@ export class GameRenderer {
     ctx.fillStyle = color;
     ctx.fillRect(x + 1, centerY - px / 2, 2, px);
     ctx.restore();
-  }
-
-  // Remaining glyphs: error red while mistyped, function-yellow on the locked
-  // target, plain editor foreground otherwise.
-  private remainingColor(active: boolean, erroring: boolean, colors: RenderColors): string {
-    if (erroring) return colors.danger;
-    if (active) return colors.enemyActive;
-    return colors.text;
   }
 
   // A cleared word doesn't explode — it fades and shrinks like text being

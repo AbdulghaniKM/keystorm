@@ -117,6 +117,75 @@ export class ComboAudio {
     }
   }
 
+  /** A flow shield absorbed a breach — a bright two-note rising confirm so the
+   *  save reads as positive, clearly distinct from the loseLife buzz. */
+  shield(): void {
+    const now = this.beginSound();
+    if (!now) return;
+    const { context, master, time } = now;
+    const notes = [660, 990];
+    const noteDuration = 0.09;
+    notes.forEach((frequency, index) => {
+      this.playConfirmNote(context, master, frequency, time + index * noteDuration * 0.7, noteDuration);
+    });
+  }
+
+  /** A boss encounter opens — a low, calm two-note swell that reads as a heavy
+   *  file/diff loading rather than an arcade alarm. Stays under the gain budget. */
+  bossStart(): void {
+    const now = this.beginSound();
+    if (!now) return;
+    const { context, master, time } = now;
+    const oscillator = context.createOscillator();
+    const envelope = context.createGain();
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(110, time);
+    oscillator.frequency.exponentialRampToValueAtTime(165, time + 0.4);
+
+    const duration = 0.5;
+    envelope.gain.setValueAtTime(0.0001, time);
+    envelope.gain.exponentialRampToValueAtTime(0.7, time + 0.06);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+    oscillator.connect(envelope).connect(master);
+    oscillator.start(time);
+    oscillator.stop(time + duration);
+  }
+
+  /** A boss encounter resolved — a brighter rising confirm than the per-word
+   *  shield, marking the conflict closed. */
+  bossCleared(): void {
+    const now = this.beginSound();
+    if (!now) return;
+    const { context, master, time } = now;
+    const notes = [523, 659, 784];
+    const noteDuration = 0.1;
+    notes.forEach((frequency, index) => {
+      this.playConfirmNote(context, master, frequency, time + index * noteDuration * 0.7, noteDuration);
+    });
+  }
+
+  private playConfirmNote(
+    context: AudioContext,
+    master: GainNode,
+    frequency: number,
+    startTime: number,
+    duration: number,
+  ): void {
+    const oscillator = context.createOscillator();
+    const envelope = context.createGain();
+    oscillator.type = 'triangle';
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+
+    envelope.gain.setValueAtTime(0.0001, startTime);
+    envelope.gain.exponentialRampToValueAtTime(0.8, startTime + 0.008);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+    oscillator.connect(envelope).connect(master);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + duration);
+  }
+
   /** A heart is lost — a heavier descending buzz than a typo. */
   loseLife(): void {
     const now = this.beginSound();

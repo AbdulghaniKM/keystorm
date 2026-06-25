@@ -7,6 +7,9 @@ export type Locale = 'en' | 'ar';
 
 export type RunPhase = 'idle' | 'playing' | 'paused' | 'drafting' | 'over';
 
+/** What flavor of word enemy this is — drives spawn telegraph, scoring, pairing. */
+export type EnemyKind = 'normal' | 'comment' | 'bracket' | 'lint' | 'tank' | 'conflict' | 'bonus';
+
 /** A marching word enemy. */
 export interface Enemy {
   id: number;
@@ -28,6 +31,18 @@ export interface Enemy {
   shatter?: number;
   /** Remaining error-flash time in ms after a mistyped letter; undefined when calm. */
   errorMs?: number;
+  /** Variant of this enemy; absent means a plain 'normal' word. */
+  kind?: EnemyKind;
+  /** Pairs a bracket/conflict partner — both enemies share the same linkId. */
+  linkId?: number;
+  /** For a merge-conflict word: which side of the conflict block it belongs to,
+   *  so the renderer can frame the HEAD block and the incoming branch block as a
+   *  real vertical conflict stack. Absent for non-conflict / stack-trace words. */
+  conflictSide?: 'head' | 'branch';
+  /** Spawn-telegraph countdown in ms; while > 0 the enemy is still announcing itself. */
+  spawnFlashMs?: number;
+  /** True for a score-reward enemy. */
+  bonus?: boolean;
 }
 
 /** Live, per-frame run statistics surfaced to the HUD. */
@@ -91,8 +106,12 @@ export type GameEvent =
   | { type: 'shatter'; enemyId: number }
   | { type: 'miss' }
   | { type: 'breach' }
-  | { type: 'spawn'; enemyId: number }
+  | { type: 'spawn'; enemyId: number; kind?: EnemyKind }
   | { type: 'wavecomplete'; wave: number }
+  | { type: 'wavestart'; wave: number }
+  | { type: 'shield' }
+  | { type: 'bossstart'; kind: string }
+  | { type: 'bosscleared'; kind: string }
   | { type: 'gameover' };
 
 export interface EngineOptions {

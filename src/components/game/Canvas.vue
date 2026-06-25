@@ -13,6 +13,8 @@ const SHATTER_SHAKE_MS = 180;
 const MISS_SHAKE_MS = 90;
 const BREACH_SHAKE_MS = 220;
 const SHAKE_DECAY_PER_MS = 1;
+const SHIELD_FLASH_MS = 420;
+const BOSS_BANNER_MS = 2600;
 
 const emit = defineEmits<{ over: [result: RunResult] }>();
 
@@ -28,6 +30,8 @@ const paused = ref(false);
 const drafting = ref(false);
 const offers = ref<RunModifier[]>([]);
 const wave = ref(0);
+const shieldFlash = ref(false);
+const bossBanner = ref('');
 
 // Respect the OS reduced-motion setting on the canvas (templates already use the
 // motion-reduce: variant; the canvas shake has to be gated in script).
@@ -88,6 +92,21 @@ function handleEvent(event: GameEvent): void {
       audio.loseLife();
       if (!reducedMotion) shakeMs = Math.max(shakeMs, BREACH_SHAKE_MS);
       break;
+    case 'wavestart':
+      audio.keyTap();
+      break;
+    case 'shield':
+      audio.shield();
+      flashShield();
+      break;
+    case 'bossstart':
+      audio.bossStart();
+      showBossBanner(bossBannerText(event.kind));
+      break;
+    case 'bosscleared':
+      audio.bossCleared();
+      bossBanner.value = '';
+      break;
     case 'wavecomplete':
       drafting.value = true;
       offers.value = engine?.offers() ?? [];
@@ -98,6 +117,27 @@ function handleEvent(event: GameEvent): void {
       endRun();
       break;
   }
+}
+
+function flashShield(): void {
+  if (reducedMotion) return;
+  shieldFlash.value = true;
+  window.setTimeout(() => {
+    shieldFlash.value = false;
+  }, SHIELD_FLASH_MS);
+}
+
+function bossBannerText(kind: string): string {
+  if (kind === 'merge') return 'Resolving merge conflict…';
+  if (kind === 'stacktrace') return 'Tracing stack…';
+  return 'Resolving…';
+}
+
+function showBossBanner(text: string): void {
+  bossBanner.value = text;
+  window.setTimeout(() => {
+    if (bossBanner.value === text) bossBanner.value = '';
+  }, BOSS_BANNER_MS);
 }
 
 function endRun(): void {
@@ -241,6 +281,18 @@ onUnmounted(() => {
     <GameHud :stats="stats" class="z-10 shrink-0" />
     <div ref="field" class="relative min-h-0 flex-1 bg-background">
       <canvas ref="canvas" class="block size-full" />
+      <div
+        v-if="shieldFlash"
+        class="pointer-events-none absolute inset-0 bg-success/10 transition-opacity duration-300 motion-reduce:hidden"
+        aria-hidden="true"
+      />
+      <div
+        v-if="bossBanner"
+        class="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--vscode-titlebar)] px-3 py-1 font-mono text-xs text-[var(--color-text-secondary)]"
+      >
+        <span class="icon-[lucide--git-merge] size-3.5 shrink-0" aria-hidden="true" />
+        <span>{{ bossBanner }}</span>
+      </div>
       <div
         v-if="paused"
         class="absolute inset-0 flex items-center justify-center bg-background/70 font-mono text-sm text-success"
