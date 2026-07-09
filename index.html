@@ -20,12 +20,27 @@
           }
           var shape = localStorage.getItem('app-shape');
           if (shape) document.documentElement.setAttribute('data-shape', shape);
-          document.documentElement.setAttribute('data-skin', 'vscode');
+          // Skin: 'vscode' (default) or 'retro' — mirrors useSkin.ts so the
+          // first paint lands on the persisted skin (no FOUC on reload).
+          var skin = localStorage.getItem('app-skin');
+          document.documentElement.setAttribute(
+            'data-skin',
+            skin === 'retro' ? 'retro' : 'vscode',
+          );
           var vsTheme = localStorage.getItem('app-vscode-theme') || 'dark-modern';
           document.documentElement.setAttribute('data-vscode-theme', vsTheme);
         } catch (_) {}
       })();
     </script>
+
+    <!-- Retro skin pixel fonts (Press Start 2P = display, VT323 = body/HUD)
+         + Cairo for the Arabic fallback. font-display: swap via css2 API. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Cairo:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
 
     <title>Keystorm</title>
   </head>

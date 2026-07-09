@@ -961,6 +961,168 @@ html[data-skin='vscode'] body {
   background-color: color-mix(in srgb, var(--vscode-statusbar-fg) 14%, transparent);
 }
 
+/* ─── Skin: 32-bit retro night-arcade ──────────────────────────────────────
+   Spec: docs/design/retro-32bit-skin.md. A switchable alternative to the VS
+   Code skin — chunky pixel corners, hard sticker shadows, neon-on-navy.
+   Purely additive: a sibling of html[data-skin='vscode'], never an edit to
+   it. Every component + the canvas read the same token contract, so this one
+   block re-skins the whole app. Dark-first: retro v1 ignores data-theme. */
+html[data-skin='retro'] {
+  color-scheme: dark;
+
+  /* Fonts (Google Fonts: Press Start 2P + VT323; <link>s live in index.html).
+     Press Start 2P = display/marquee only (wide, unreadable in bulk);
+     VT323 = body/HUD/mono. Neither ships Arabic glyphs — see RTL block. */
+  --font-display: 'Press Start 2P', 'Courier New', monospace;
+  --font-primary: 'VT323', 'Courier New', monospace;
+  --font-mono: 'VT323', 'Courier New', monospace;
+  --font-sans: 'VT323', system-ui, sans-serif;
+  --font-serif: 'VT323', Georgia, serif;
+
+  /* Hard pixel corners */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+
+  /* Core palette — neon accents on deep navy (all pairs ≥4.5:1 on bg) */
+  --color-primary: #ff4d4d;
+  --color-secondary: #4c8dff;
+  --color-accent: #22c55e;
+  --color-background: #0f172a;
+  --color-surface: #192134;
+  --color-surface-elevated: #22304a;
+  --color-text: #e8eef9;
+  --color-text-secondary: #9fb3d1;
+  --color-border: #05070d;
+  --color-muted: #131b2e;
+  --color-glow: #22d3ee;
+  --color-link: #38bdf8;
+  --color-link-hover: #7dd3fc;
+  --color-emphasis: #fde047;
+  --color-success: #22c55e;
+  --color-warning: #fbbf24;
+  --color-error: #f87171;
+  --color-info: #38bdf8;
+
+  /* Depth — hard pixel sticker shadows + subtle neon glow */
+  --glass-bg: rgba(25, 33, 52, 0.82);
+  --glass-bg-strong: rgba(34, 48, 74, 0.92);
+  --glass-border: #34406b;
+  --glow-sm: 0 0 4px rgba(34, 211, 238, 0.35);
+  --glow-md: 0 0 8px rgba(34, 211, 238, 0.45);
+  --glow-lg: 0 0 14px rgba(34, 211, 238, 0.55);
+  --glow-accent: 0 0 10px rgba(34, 197, 94, 0.55);
+  --shadow-pop: 4px 4px 0 0 #05070d;
+  --shadow-pop-sm: 3px 3px 0 0 #05070d;
+  --shadow-pop-active: 1px 1px 0 0 #05070d;
+  --text-shadow-pop: 4px 4px 0 #05070d;
+
+  /* Syntax — bright arcade hues for the marching-word decoration */
+  --syntax-comment: #8aa0c4;
+  --syntax-keyword: #e879f9;
+  --syntax-control: #fb923c;
+  --syntax-function: #fcd34d;
+  --syntax-string: #4ade80;
+  --syntax-number: #c084fc;
+  --syntax-type: #22d3ee;
+  --syntax-variable: #bae6fd;
+  --syntax-punctuation: #94a3b8;
+
+  /* Chrome vars — cabinet-toned in case editor chrome ever renders here */
+  --vscode-titlebar: #05070d;
+  --vscode-activitybar: #131b2e;
+  --vscode-tab-inactive: #131b2e;
+  --vscode-selection: #24406e;
+  --vscode-hover: #22304a;
+  --vscode-statusbar-bg: #131b2e;
+  --vscode-statusbar-fg: #e8eef9;
+}
+
+/* Arabic / RTL fallback — neither pixel font has Arabic glyphs. Cairo (headings)
+   and Noto-style sans (body) are the closest "pixel-adjacent" legible faces;
+   the vars cascade, so scoping to the rtl subtree is enough. */
+html[data-skin='retro'] [dir='rtl'] {
+  --font-display: 'Cairo', 'Noto Kufi Arabic', 'Noto Sans Arabic', system-ui, sans-serif;
+  --font-primary: 'Noto Kufi Arabic', 'Noto Sans Arabic', system-ui, sans-serif;
+  --font-mono: 'Noto Kufi Arabic', 'Noto Sans Arabic', system-ui, sans-serif;
+}
+
+/* Crisp pixels: no AA on text, blocky scaling on canvas/sprites/icons. */
+html[data-skin='retro'] {
+  -webkit-font-smoothing: none;
+  text-rendering: geometricPrecision;
+}
+html[data-skin='retro'] canvas,
+html[data-skin='retro'] img {
+  image-rendering: pixelated;
+}
+
+/* NES-style focus ring — a hard, un-blurred rectangle. Never remove. */
+html[data-skin='retro'] :focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* CRT scanline overlay — static gradient, no flicker. Hidden for
+   reduced-motion users (eyestrain) per the spec's accessibility contract. */
+html[data-skin='retro'] body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.14) 2px 3px
+  );
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-skin='retro'] body::after {
+    display: none;
+  }
+}
+
+/* Chunky pixel button — the retro sibling of .vscode-statusbar-item. */
+.retro-btn {
+  border: 2px solid var(--color-border);
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-pop-sm);
+  font-family: var(--font-primary);
+}
+.retro-btn:hover {
+  background-color: var(--color-surface-elevated);
+}
+.retro-btn:active {
+  box-shadow: var(--shadow-pop-active);
+  transform: translate(2px, 2px);
+}
+
+/* Blinking "CREDIT 01" coin — steps(1) arcade blink, killed by reduced motion. */
+@keyframes retro-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+.retro-blink {
+  animation: retro-blink 1.06s steps(1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .retro-blink {
+    animation: none !important;
+  }
+}
+
 /* Smooth theme transitions — only applied during an active theme swap.
    The `theme-switching` class is toggled on <html> by applyThemeToDOM
    (utils/theme.ts) for ~300ms. Keeps transitions off `*` the rest of the

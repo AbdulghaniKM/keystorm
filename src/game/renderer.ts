@@ -85,13 +85,25 @@ export function readRenderColors(el: HTMLElement): RenderColors {
 // 10px sans-serif. Mirror the editor's --font-mono so the words read like code,
 // with IBM Plex Sans (Arabic) tailing the chain: the coding monospaces have no
 // Arabic glyphs, so the browser falls back to it per-glyph for ع/ar runs.
-const FONT_FAMILY =
+const CODE_FONT_FAMILY =
   '"Cascadia Code", "Fira Code", "JetBrains Mono", "Consolas", "SF Mono", ui-monospace, "IBM Plex Sans", monospace';
+// The retro skin's pixel terminal face (spec: docs/design/retro-32bit-skin.md).
+// This is the ONE thing CSS can't deliver to the canvas, so the family is
+// skin-aware here. VT323 has no Arabic glyphs either — the Plex tail keeps
+// Arabic runs falling back per-glyph, an honest degradation the spec accepts.
+const RETRO_FONT_FAMILY = '"VT323", "IBM Plex Sans", monospace';
+// VT323 draws thinner/smaller than the coding monospaces at equal px; a small
+// glyph-only bump (layout rows are untouched) keeps the field readable.
+const RETRO_FONT_SCALE = 1.12;
 const PROXIMITY_RANGE_FRACTION = 0.4;
 // A small, restrained screen shake on impact — enough to register, never a jolt
-// that would betray a game running behind the editor disguise.
+// that would betray a game running behind the editor disguise. The retro skin
+// has no disguise to protect, so it shakes harder (still reduced-motion gated
+// upstream in Canvas.vue) and snaps to integers for pixel-crisp jolts.
 const SHAKE_PIXELS_PER_MS = 0.02;
 const SHAKE_MAX_PX = 6;
+const RETRO_SHAKE_PIXELS_PER_MS = 0.05;
+const RETRO_SHAKE_MAX_PX = 14;
 
 const GUTTER_FONT_SCALE = 0.82;
 const ACTIVE_LINE_ALPHA = 0.4;
@@ -146,8 +158,25 @@ export class GameRenderer {
   // Reused row → line-number-color map, cleared and refilled each frame so the
   // gutter HUD costs no per-frame Map allocation. Keyed by row index.
   private readonly rowHighlights = new Map<number, string>();
+  // Skin-aware rendering (font family can't come from CSS vars — canvas font
+  // strings don't resolve var()). Synced once per frame from data-skin so the
+  // renderer stays a single implementation, driven by the same switch as the
+  // rest of the app, not a hard fork.
+  private retroSkin = false;
+  private fontFamily = CODE_FONT_FAMILY;
 
   constructor(private readonly ctx: CanvasRenderingContext2D) {}
+
+  // Read the active skin off the root attribute useSkin.ts owns. Cheap enough
+  // per-frame (one attribute read); keeps the hot loop dependency-free.
+  private syncSkin(): void {
+    this.retroSkin =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-skin') === 'retro';
+    this.fontFamily = this.retroSkin ? RETRO_FONT_FAMILY : CODE_FONT_FAMILY;
+    // Nearest-neighbor for any scaled draw — crisp pixels in retro.
+    this.ctx.imageSmoothingEnabled = !this.retroSkin;
+  }
 
   resize(cssW: number, cssH: number, dpr: number): void {
     const canvas = this.ctx.canvas;
@@ -159,10 +188,13 @@ export class GameRenderer {
   }
 
   draw(engine: GameEngine, locale: Locale, colors: RenderColors, shakeMs: number): void {
+    this.syncSkin();
     const { ctx } = this;
     const width = this.cssWidth;
     const enemies = engine.enemies;
-    const px = fontPxFor(width);
+    const px = this.retroSkin
+      ? Math.round(fontPxFor(width) * RETRO_FONT_SCALE)
+      : fontPxFor(width);
     const rowHeight = rowHeightFor(width);
     const gutter = gutterWidthFor(width);
 
@@ -247,7 +279,7 @@ export class GameRenderer {
     ctx.stroke();
 
     // Line numbers down the full height, recolored per row by the game state.
-    ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${FONT_FAMILY}`;
+    ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${this.fontFamily}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'right';
     let lineNumber = 1;
@@ -291,7 +323,7 @@ export class GameRenderer {
     const { ctx } = this;
     const pulse = 0.6 + 0.4 * this.pulse(HOT_LANE_PULSE_PERIOD_MS);
     ctx.save();
-    ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${FONT_FAMILY}`;
+    ctx.font = `${Math.round(px * GUTTER_FONT_SCALE)}px ${this.fontFamily}`;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'right';
     ctx.fillStyle = colors.danger;
@@ -313,9 +345,16 @@ export class GameRenderer {
 
   private applyShake(shakeMs: number): void {
     if (shakeMs <= 0) return;
-    const magnitude = Math.min(shakeMs * SHAKE_PIXELS_PER_MS, SHAKE_MAX_PX);
-    const offsetX = (Math.random() - 0.5) * 2 * magnitude;
-    const offsetY = (Math.random() - 0.5) * 2 * magnitude;
+    const rate = this.retroSkin ? RETRO_SHAKE_PIXELS_PER_MS : SHAKE_PIXELS_PER_MS;
+    const maxPx = this.retroSkin ? RETRO_SHAKE_MAX_PX : SHAKE_MAX_PX;
+    const magnitude = Math.min(shakeMs * rate, maxPx);
+    let offsetX = (Math.random() - 0.5) * 2 * magnitude;
+    let offsetY = (Math.random() - 0.5) * 2 * magnitude;
+    if (this.retroSkin) {
+      // Integer-snapped jolts read as whole-pixel arcade shake, not smear.
+      offsetX = Math.round(offsetX);
+      offsetY = Math.round(offsetY);
+    }
     this.ctx.translate(offsetX, offsetY);
   }
 
@@ -383,7 +422,7 @@ export class GameRenderer {
     rowHeight: number,
   ): void {
     const { ctx } = this;
-    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${px}px ${this.fontFamily}`;
     ctx.textBaseline = 'middle';
     // Bracket pairs (#6) get a faint connector drawn under the words so the two
     // linked halves read as one { … } span; done first so glyphs stay on top.
@@ -565,7 +604,7 @@ export class GameRenderer {
   ): void {
     const { ctx } = this;
     const kindPx = this.archetypeFontPx(enemy, px);
-    ctx.font = `400 ${kindPx}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${kindPx}px ${this.fontFamily}`;
     const typedText = enemy.word.slice(0, enemy.typed);
     const remainingText = enemy.word.slice(enemy.typed);
     const wordWidth = ctx.measureText(enemy.word).width;
@@ -590,7 +629,7 @@ export class GameRenderer {
     this.drawArchetypeStatus(enemy, enemy.x, wordWidth, enemy.y, kindPx, erroring, critical, colors);
 
     if (enemy.active) this.drawCaret(enemy.x + typedWidth, enemy.y, kindPx, colors.text);
-    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${px}px ${this.fontFamily}`;
   }
 
   private drawArabicEnemy(
@@ -602,7 +641,7 @@ export class GameRenderer {
   ): void {
     const { ctx } = this;
     const kindPx = this.archetypeFontPx(enemy, px);
-    ctx.font = `400 ${kindPx}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${kindPx}px ${this.fontFamily}`;
     const wordWidth = ctx.measureText(enemy.word).width;
     const erroring = (enemy.errorMs ?? 0) > 0;
     const left = enemy.x - wordWidth;
@@ -623,7 +662,7 @@ export class GameRenderer {
     // Arabic underline is right-anchored from enemy.x leftward.
     this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + kindPx * 0.6, alpha);
     this.drawArchetypeStatus(enemy, left, wordWidth, enemy.y, kindPx, erroring, critical, colors);
-    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${px}px ${this.fontFamily}`;
   }
 
   // Tank words (#6) read as a heavier long identifier — a touch bigger than the
@@ -831,7 +870,7 @@ export class GameRenderer {
 
     ctx.save();
     ctx.globalAlpha = fade;
-    ctx.font = `400 ${px}px ${FONT_FAMILY}`;
+    ctx.font = `400 ${px}px ${this.fontFamily}`;
     ctx.textBaseline = 'middle';
     ctx.translate(enemy.x, enemy.y);
     ctx.scale(scale, scale);

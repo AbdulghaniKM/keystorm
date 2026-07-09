@@ -239,6 +239,17 @@
             class="size-3.5"
           />
         </button>
+
+        <!-- Skin switch: flip the whole app into the 32-bit retro cabinet -->
+        <button
+          type="button"
+          class="vscode-statusbar-item flex h-full items-center px-2"
+          title="Switch to Retro theme"
+          aria-label="Switch to Retro theme"
+          @click="toggleSkin"
+        >
+          <UiAppIcon name="icon-[lucide--gamepad-2]" class="size-3.5" />
+        </button>
       </div>
     </footer>
 
@@ -253,6 +264,7 @@
   const { locale, setLocale, t } = useI18n();
   const settings = useSettingsStore();
   const { current, toggleMode } = useVscodeTheme();
+  const { toggleSkin } = useSkin();
 
   const showThemePicker = ref(false);
   const themeMode = computed(() => current().mode);

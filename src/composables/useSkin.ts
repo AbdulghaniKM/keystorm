@@ -1,26 +1,55 @@
-import { ref, type Ref } from 'vue';
+import { ref, watch, type Ref } from 'vue';
 
-/** Visual skin. The app now ships a single VS Code editor skin. */
-export type Skin = 'vscode';
+/** Visual skin: the VS Code editor disguise (default) or the 32-bit retro
+ *  arcade cabinet (spec: docs/design/retro-32bit-skin.md). */
+export type Skin = 'vscode' | 'retro';
 
-const SKIN: Skin = 'vscode';
+const SKIN_KEY = 'app-skin';
+const DEFAULT_SKIN: Skin = 'vscode';
+const SKINS: readonly Skin[] = ['vscode', 'retro'];
 
-// The VS Code skin is always active, so `data-skin` is pinned on the root for the
-// stylesheet to key off (mirrors the FOUC guard in index.html).
-const applySkinAttribute = (): void => {
-  if (typeof document === 'undefined') return;
-  document.documentElement.setAttribute('data-skin', SKIN);
+const isSkin = (value: string | null): value is Skin =>
+  value === 'vscode' || value === 'retro';
+
+// First-time and cleared-storage users always land on the VS Code look.
+const readStored = (): Skin => {
+  if (typeof localStorage === 'undefined') return DEFAULT_SKIN;
+  try {
+    const raw = localStorage.getItem(SKIN_KEY);
+    return isSkin(raw) ? raw : DEFAULT_SKIN;
+  } catch {
+    return DEFAULT_SKIN;
+  }
 };
 
-const skin: Ref<Skin> = ref(SKIN);
+// `data-skin` on the root is the single switch every stylesheet block and the
+// canvas renderer key off (mirrors the FOUC guard in index.html).
+const applySkinAttribute = (value: Skin): void => {
+  if (typeof document === 'undefined') return;
+  document.documentElement.setAttribute('data-skin', value);
+};
 
-applySkinAttribute();
+const skin: Ref<Skin> = ref(readStored());
 
-// `setSkin`/`toggleSkin` are retained as no-ops so existing callers keep working
-// now that there is only one skin to show.
+applySkinAttribute(skin.value);
+
+watch(skin, (next) => {
+  applySkinAttribute(next);
+  try {
+    localStorage.setItem(SKIN_KEY, next);
+  } catch {
+    /* Persistence is best-effort. */
+  }
+});
+
 export const useSkin = () => {
-  const setSkin = (): void => {};
-  const toggleSkin = (): void => {};
+  const setSkin = (next: Skin): void => {
+    if (SKINS.includes(next)) skin.value = next;
+  };
 
-  return { skin, skins: [SKIN] as readonly Skin[], setSkin, toggleSkin };
+  const toggleSkin = (): void => {
+    skin.value = skin.value === 'vscode' ? 'retro' : 'vscode';
+  };
+
+  return { skin, skins: SKINS, setSkin, toggleSkin };
 };

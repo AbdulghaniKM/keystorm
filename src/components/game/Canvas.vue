@@ -8,6 +8,7 @@ import type { RunModifier } from '@/game/modifiers';
 import { useVscodeTheme } from '@/composables/useVscodeTheme';
 import GameCommandPalette from '@/components/game/CommandPalette.vue';
 import GameHud from '@/components/game/Hud.vue';
+import GameVoltMascot from '@/components/game/VoltMascot.vue';
 
 const SHATTER_SHAKE_MS = 180;
 const MISS_SHAKE_MS = 90;
@@ -21,6 +22,7 @@ const emit = defineEmits<{ over: [result: RunResult] }>();
 const { locale } = useI18n();
 const settings = useSettingsStore();
 const gameStore = useGameStore();
+const { skin } = useSkin();
 
 const field = ref<HTMLDivElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -281,6 +283,15 @@ onUnmounted(() => {
     <GameHud :stats="stats" class="z-10 shrink-0" />
     <div ref="field" class="relative min-h-0 flex-1 bg-background">
       <canvas ref="canvas" class="block size-full" />
+      <!-- Retro-only HUD buddy: reacts to combo/lives; decorative (aria-hidden
+           inside), the real readouts live in GameHud. -->
+      <GameVoltMascot
+        v-if="skin === 'retro'"
+        :combo="stats.combo"
+        :lives="stats.lives"
+        :scale="2"
+        class="absolute end-2 top-2 z-10"
+      />
       <div
         v-if="shieldFlash"
         class="pointer-events-none absolute inset-0 bg-success/10 transition-opacity duration-300 motion-reduce:hidden"

@@ -1,9 +1,12 @@
 <script setup lang="ts">
+import GameVoltMascot from '@/components/game/VoltMascot.vue'
+
 const props = defineProps<{ bestWpm: number }>()
 
 const emit = defineEmits<{ start: [] }>()
 
 const { t } = useI18n()
+const { skin } = useSkin()
 
 const lineNumbers = Array.from({ length: 18 }, (_value, index) => index + 1)
 
@@ -16,10 +19,12 @@ function startRun(): void {
   <button
     type="button"
     dir="ltr"
-    class="block w-full cursor-text overflow-hidden bg-[var(--color-background)] text-left font-mono text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#007acc]"
+    class="relative block w-full cursor-text overflow-hidden bg-[var(--color-background)] text-left font-mono text-sm leading-6 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#007acc]"
     :aria-label="t('start')"
     @click="startRun"
   >
+    <!-- Retro-only: Volt idles above the prompt, inviting the player in. -->
+    <GameVoltMascot v-if="skin === 'retro'" :scale="4" class="absolute right-6 top-6" />
     <div class="flex">
       <div
         aria-hidden="true"
