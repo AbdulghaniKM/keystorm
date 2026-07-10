@@ -12,6 +12,7 @@ const en = {
   howToPlayBody:
     'Words march toward your base. Type the nearest word to shatter it before it reaches you. Accuracy and a steady rhythm win games, not raw speed.',
   pressToStart: 'Press any key to start',
+  noRunsYet: 'no runs recorded yet',
   cleanWpm: 'Clean WPM',
   wpm: 'WPM',
   accuracy: 'Accuracy',

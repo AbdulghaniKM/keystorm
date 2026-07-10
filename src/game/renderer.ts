@@ -660,7 +660,7 @@ export class GameRenderer {
 
     this.drawTrailingMarker(enemy, colors, left, enemy.y, alpha, 'right');
     // Arabic underline is right-anchored from enemy.x leftward.
-    this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + kindPx * 0.6, alpha);
+    this.drawProgressUnderline(left, wordWidth, enemy, colors, enemy.y + kindPx * 0.6, alpha, true);
     this.drawArchetypeStatus(enemy, left, wordWidth, enemy.y, kindPx, erroring, critical, colors);
     ctx.font = `400 ${px}px ${this.fontFamily}`;
   }
@@ -792,7 +792,8 @@ export class GameRenderer {
   }
 
   // Progress bar under the word: the whole span faint, the typed fraction solid
-  // green — mirrors the editor's inline diff/coverage gutter.
+  // green — mirrors the editor's inline diff/coverage gutter. In RTL the typed
+  // fraction grows from the right edge leftward, matching the typing direction.
   private drawProgressUnderline(
     left: number,
     wordWidth: number,
@@ -800,9 +801,12 @@ export class GameRenderer {
     colors: RenderColors,
     underlineY: number,
     alpha: number,
+    rtl = false,
   ): void {
     const { ctx } = this;
     const fraction = enemy.word.length > 0 ? enemy.typed / enemy.word.length : 0;
+    const typedStart = rtl ? left + wordWidth : left;
+    const typedEnd = rtl ? left + wordWidth * (1 - fraction) : left + wordWidth * fraction;
 
     ctx.save();
     ctx.lineWidth = 2;
@@ -816,8 +820,8 @@ export class GameRenderer {
     ctx.globalAlpha = alpha;
     ctx.strokeStyle = colors.typed;
     ctx.beginPath();
-    ctx.moveTo(left, underlineY);
-    ctx.lineTo(left + wordWidth * fraction, underlineY);
+    ctx.moveTo(typedStart, underlineY);
+    ctx.lineTo(typedEnd, underlineY);
     ctx.stroke();
     ctx.restore();
   }

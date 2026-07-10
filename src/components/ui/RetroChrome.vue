@@ -75,18 +75,6 @@
           <span>{{ locale === 'ar' ? 'عربي' : 'EN' }}</span>
         </button>
 
-        <!-- Color theme picker (chooses the palette used by the VS Code skin) -->
-        <button
-          type="button"
-          class="retro-btn flex min-h-9 items-center gap-1.5 px-2.5"
-          :title="`Color theme: ${themeLabel}`"
-          aria-label="Select color theme"
-          @click="showThemePicker = true"
-        >
-          <UiAppIcon name="icon-[lucide--palette]" class="size-4" />
-          <span class="hidden md:inline">{{ themeLabel.toUpperCase() }}</span>
-        </button>
-
         <!-- Sound toggle -->
         <button
           type="button"
@@ -117,23 +105,17 @@
         </button>
       </div>
     </footer>
-
-    <UiThemePicker v-if="showThemePicker" @close="showThemePicker = false" />
   </div>
 </template>
 
 <script setup lang="ts">
   import type { Locale } from '@/game/types';
-  import { useVscodeTheme } from '@/composables/useVscodeTheme';
 
   const { locale, setLocale, t } = useI18n();
   const settings = useSettingsStore();
   const game = useGameStore();
-  const { current } = useVscodeTheme();
   const { toggleSkin } = useSkin();
 
-  const showThemePicker = ref(false);
-  const themeLabel = computed(() => current().label);
   const bestWpm = computed(() => Math.round(game.best[locale.value] ?? 0));
 
   function toggleLocale(): void {
